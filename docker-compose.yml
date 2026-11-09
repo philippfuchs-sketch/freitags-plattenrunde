@@ -4,7 +4,7 @@ services:
     container_name: plattenrunde
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${HOST_PORT:-3000}:3000"
     environment:
       - PORT=3000
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-vinyl-club-admin-2026}
