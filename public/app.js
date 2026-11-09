@@ -519,7 +519,7 @@ function renderActiveRoundScreen(league, round, user) {
 
       <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h1 class="round-title">${escapeHtml(round.title)}</h1>
-        ${isHost ? `<button class="btn-text" onclick="window.appHandlers.toggleRoundEditor()">${state.roundEditorOpen ? 'Schließen ✕' : 'Motto bearbeiten ✎'}</button>` : ''}
+        ${isHost ? `<button class="btn-text" onclick="window.appHandlers.toggleRoundEditor()">${state.roundEditorOpen ? 'Schließen' : 'Motto bearbeiten'}</button>` : ''}
       </div>
 
       ${state.roundEditorOpen ? `
@@ -537,7 +537,7 @@ function renderActiveRoundScreen(league, round, user) {
           <p class="round-desc">${escapeHtml(round.description)}</p>
           ${round.tracks.length > 0 && round.phase !== 'SUBMISSION' ? `
             <a href="${playlistHref}" target="_blank" rel="noopener noreferrer" class="btn-text" style="color: var(--accent); font-weight: 500;">
-              Ganze Runde in ${state.platformMode === 'youtube' ? 'YouTube' : 'Spotify'} hören ↗
+              Ganze Runde hören ↗
             </a>
           ` : ''}
         </div>
@@ -575,7 +575,9 @@ function renderSubSearchResultsHtml(results) {
               <div style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.artist)}</div>
             </div>
           </div>
-          <span style="font-size: 12px; color: var(--accent); flex-shrink: 0; margin-left: 8px;">Wählen</span>
+          <span style="color: var(--accent); flex-shrink: 0; margin-left: 8px; display: inline-flex; align-items: center;" title="Wählen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </span>
         </div>
       `).join('')}
     </div>
@@ -595,7 +597,9 @@ function renderCalloutSearchResultsHtml(results) {
             <img src="${item.cover_url}" alt="" class="album-cover" style="width: 34px; height: 34px; flex-shrink: 0;" />
             <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)} — ${escapeHtml(item.artist)}</span>
           </div>
-          <span style="font-size: 12px; color: var(--accent); flex-shrink: 0; margin-left: 8px;">Tippen</span>
+          <span style="color: var(--accent); flex-shrink: 0; margin-left: 8px; display: inline-flex; align-items: center;" title="Tippen">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </span>
         </div>
       `).join('')}
     </div>
@@ -628,8 +632,8 @@ function renderCleanSubmission(league, round, user) {
             oninput="window.appHandlers.onSubSearchInput(this.value)"
             onkeydown="if(event.key==='Enter') window.appHandlers.resolveSubInput()"
           />
-          <button class="btn btn-primary" style="flex-shrink: 0;" onclick="window.appHandlers.resolveSubInput()">
-            Auswählen
+          <button class="btn btn-primary btn-icon" title="Song suchen / auswählen" onclick="window.appHandlers.resolveSubInput()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </button>
         </div>
 
@@ -658,7 +662,7 @@ function renderCleanSubmission(league, round, user) {
                 style="font-size: 12px;"
                 onclick="window.appHandlers.setPitchVisibility('${state.subPitchVisibility === 'VOTING' ? 'REVEAL' : 'VOTING'}')"
               >
-                ${state.subPitchVisibility === 'VOTING' ? 'Sichtbarkeit: Schon beim Voten' : 'Sichtbarkeit: Erst bei Auflösung (Spoiler-Schutz)'}
+                ${state.subPitchVisibility === 'VOTING' ? 'Sichtbar beim Voten' : 'Erst bei Auflösung'}
               </button>
             </div>
             <input
@@ -702,7 +706,9 @@ function renderCleanSubmission(league, round, user) {
                 oninput="window.appHandlers.onCalloutSearchInput(this.value)"
                 onkeydown="if(event.key==='Enter') window.appHandlers.resolveCalloutInput()"
               />
-              <button class="btn" style="flex-shrink: 0;" onclick="window.appHandlers.resolveCalloutInput()">Setzen</button>
+              <button class="btn btn-icon" title="Tipp setzen" onclick="window.appHandlers.resolveCalloutInput()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
             </div>
 
             <div id="callout-search-results">
@@ -715,7 +721,7 @@ function renderCleanSubmission(league, round, user) {
                   <img src="${calloutSel.cover_url}" alt="" class="album-cover" style="width: 36px; height: 36px;" />
                   <span style="font-size: 13px; font-weight: 500;">${escapeHtml(calloutSel.title)} — ${escapeHtml(calloutSel.artist)}</span>
                 </div>
-                <button class="btn-text" onclick="window.appHandlers.clearCallout()">Entfernen</button>
+                <button class="btn-text" onclick="window.appHandlers.clearCallout()">Löschen</button>
               </div>
             ` : ''}
           </div>
@@ -723,8 +729,8 @@ function renderCleanSubmission(league, round, user) {
       </div>
 
       <div style="display: flex; justify-content: flex-end;">
-        <button class="btn btn-accent" style="padding: 10px 22px; font-size: 13px;" onclick="window.appHandlers.submitTrackAndCallout()">
-          ${existingSub ? 'Änderungen speichern' : 'Beitrag verbindlich speichern'}
+        <button class="btn btn-accent" style="padding: 9px 20px; font-size: 13px;" onclick="window.appHandlers.submitTrackAndCallout()">
+          ${existingSub ? 'Speichern' : 'Einreichen'}
         </button>
       </div>
     </div>
@@ -859,7 +865,7 @@ function renderCleanVotingAccordion(league, round, user) {
                         class="btn-text"
                         onclick="window.appHandlers.toggleTrackPlatform('${track.id}', '${effectivePlatform === 'spotify' ? 'youtube' : 'spotify'}')"
                       >
-                        ${effectivePlatform === 'spotify' ? 'Auf YouTube hören →' : 'Zu Spotify wechseln →'}
+                        ${effectivePlatform === 'spotify' ? 'YouTube ↗' : 'Spotify ↗'}
                       </button>
                       <button
                         type="button"
@@ -867,7 +873,7 @@ function renderCleanVotingAccordion(league, round, user) {
                         style="color: ${isBookmarked ? 'var(--accent)' : 'var(--text-secondary)'};"
                         onclick="window.appHandlers.toggleBookmark('${track.id}')"
                       >
-                        ${isBookmarked ? 'Gemerkt ✓' : 'Merken'}
+                        ${isBookmarked ? 'Gemerkt' : 'Merken'}
                       </button>
                     </div>
                   </div>
@@ -918,14 +924,14 @@ function renderCleanVotingAccordion(league, round, user) {
         <div style="display: flex; align-items: center; gap: 8px;">
           ${!isLocked ? `
             <button class="btn" onclick="window.appHandlers.saveBallot('DRAFT')">
-              Zwischenspeichern
+              Entwurf
             </button>
             <button
               class="btn btn-accent"
               ${remainingPoints !== 0 ? 'disabled' : ''}
               onclick="window.appHandlers.saveBallot('SUBMITTED')"
             >
-              Final absenden
+              Abgeben
             </button>
           ` : `
             <span style="font-size: 12px; color: var(--text-muted);">Stimmzettel final eingereicht ✓</span>
@@ -962,9 +968,9 @@ function renderCleanReveal(league, round, user) {
             class="btn-text"
             onclick="window.appHandlers.setRevealMode('${state.revealMode === 'ALL' ? 'COUNTDOWN' : 'ALL'}')"
           >
-            ${state.revealMode === 'ALL' ? 'Spannungs-Countdown starten' : 'Alle Plätze zeigen'}
+            ${state.revealMode === 'ALL' ? 'Countdown' : 'Alle Plätze'}
           </button>
-          <button class="btn-text" onclick="window.appHandlers.copyRoundSummary()">Ergebnis kopieren</button>
+          <button class="btn-text" onclick="window.appHandlers.copyRoundSummary()">Kopieren</button>
         </div>
       ` : ''}
     </div>
@@ -972,10 +978,10 @@ function renderCleanReveal(league, round, user) {
     ${state.revealSubTab === 'SONGS' ? `
       ${state.revealMode === 'COUNTDOWN' ? `
         <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); background-color: var(--surface-elevated); display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-size: 13px;">Aufgedeckt: <strong>${state.countdownStep} von ${totalTracks}</strong> (vom letzten bis zum 1. Platz)</span>
+          <span style="font-size: 13px;">Aufgedeckt: <strong>${state.countdownStep} von ${totalTracks}</strong></span>
           <div style="display: flex; gap: 8px;">
             <button class="btn" onclick="window.appHandlers.stepCountdown(-1)" ${state.countdownStep <= 1 ? 'disabled' : ''}>Zurück</button>
-            <button class="btn btn-accent" onclick="window.appHandlers.stepCountdown(1)" ${state.countdownStep >= totalTracks ? 'disabled' : ''}>Nächster Platz →</button>
+            <button class="btn btn-accent" onclick="window.appHandlers.stepCountdown(1)" ${state.countdownStep >= totalTracks ? 'disabled' : ''}>Weiter →</button>
           </div>
         </div>
       ` : `
@@ -1079,7 +1085,9 @@ function renderCleanReveal(league, round, user) {
                         oninput="window.appHandlers.setReplyDraft('${t.id}', this.value)"
                         onkeydown="if(event.key==='Enter') window.appHandlers.submitReply('${t.id}')"
                       />
-                      <button class="btn" onclick="window.appHandlers.submitReply('${t.id}')">Senden</button>
+                      <button class="btn btn-icon" title="Senden" onclick="window.appHandlers.submitReply('${t.id}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1214,8 +1222,11 @@ function renderSeasonScreen(league, round, user) {
             placeholder="Neues Motto vorschlagen..."
             value="${escapeHtml(state.newIdeaTitle)}"
             oninput="window.appHandlers.setNewIdea('title', this.value)"
+            onkeydown="if(event.key==='Enter') window.appHandlers.addThemeIdea()"
           />
-          <button class="btn btn-primary" onclick="window.appHandlers.addThemeIdea()">Hinzufügen</button>
+          <button class="btn btn-primary btn-icon" title="Motto vorschlagen" onclick="window.appHandlers.addThemeIdea()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${(league.theme_ideas || []).map(idea => `
@@ -1224,7 +1235,7 @@ function renderSeasonScreen(league, round, user) {
               <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                 <button class="btn mono" onclick="window.appHandlers.toggleIdeaVote('${idea.id}')">+${(idea.votes || []).length}</button>
                 ${isHost ? `
-                  <button class="btn-text" style="font-size: 12px; color: var(--accent);" onclick="window.appHandlers.promoteIdeaToNextRound('${idea.id}')">Als neue Runde starten →</button>
+                  <button class="btn-text" style="font-size: 12px; color: var(--accent);" onclick="window.appHandlers.promoteIdeaToNextRound('${idea.id}')">Runde starten →</button>
                 ` : ''}
               </div>
             </div>
@@ -1252,7 +1263,7 @@ function renderBookmarksScreen(league, round, user) {
     <section class="round-hero">
       <div class="round-meta-line">
         <span>Persönliches Archiv</span>
-        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück zur Runde</button>
+        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück</button>
       </div>
       <h1 class="round-title">Meine Merkliste (${items.length})</h1>
     </section>
@@ -1267,7 +1278,7 @@ function renderBookmarksScreen(league, round, user) {
                 <div class="track-subtitle">${escapeHtml(it.track.artist)} · ${escapeHtml(it.roundTitle)}</div>
               </div>
             </div>
-            <button class="btn-text" onclick="window.appHandlers.toggleBookmark('${it.track.id}')">Entfernen</button>
+            <button class="btn-text" onclick="window.appHandlers.toggleBookmark('${it.track.id}')">Löschen</button>
           </div>
         </div>
       `).join('')}
@@ -1281,7 +1292,7 @@ function renderNotificationsScreen(league, user) {
     <section class="round-hero">
       <div class="round-meta-line">
         <span>E-Mail &amp; Web-Push</span>
-        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück zur Runde</button>
+        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück</button>
       </div>
       <h1 class="round-title">Postfach (${logs.length})</h1>
     </section>
@@ -1302,7 +1313,7 @@ function renderProfileScreen(league, user) {
     <section class="round-hero">
       <div class="round-meta-line">
         <span>Einstellungen &amp; Benachrichtigungen</span>
-        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück zur Runde</button>
+        <button class="btn-text" onclick="window.appHandlers.setMainView('ROUND')">← Zurück</button>
       </div>
       <h1 class="round-title">Profil von ${escapeHtml(user.name)}</h1>
     </section>
@@ -1348,14 +1359,14 @@ function renderMenuDrawer(league, round, user) {
       <aside class="slide-drawer">
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <span style="font-size: 15px; font-weight: 600;">Menü &amp; Einstellungen</span>
-          <button class="btn-text" onclick="window.appHandlers.toggleMenu()">Schließen ✕</button>
+          <button class="btn-text" onclick="window.appHandlers.toggleMenu()">✕</button>
         </div>
 
         <!-- 1. Quick Links -->
         <div class="drawer-section">
           <div class="drawer-label">Persönlicher Bereich</div>
           <button class="btn" style="justify-content: space-between; width: 100%;" onclick="window.appHandlers.openSubScreen('BOOKMARKS')">
-            <span>Meine Merkliste</span>
+            <span>Merkliste</span>
             <span class="mono">${(user.bookmarks || []).length}</span>
           </button>
           <button class="btn" style="justify-content: space-between; width: 100%;" onclick="window.appHandlers.openSubScreen('NOTIFICATIONS')">
@@ -1425,14 +1436,14 @@ function renderMenuDrawer(league, round, user) {
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span class="drawer-label">Host-Werkzeuge</span>
               <button class="btn-text" onclick="window.appHandlers.toggleHostTools()">
-                ${state.hostToolsExpanded ? 'Ausblenden' : 'Einblenden'}
+                ${state.hostToolsExpanded ? 'Schließen' : 'Öffnen'}
               </button>
             </div>
             ${state.hostToolsExpanded ? `
-              <button class="btn" onclick="window.appHandlers.createNewRoundPrompt()">+ Neue Runde anlegen</button>
-              <button class="btn" onclick="window.appHandlers.extendDeadline(24)">Frist um +24 Std. verlängern</button>
-              <button class="btn" onclick="window.appHandlers.exportJsonBackup()">JSON-Backup herunterladen</button>
-              <button class="btn" style="color: var(--negative); width: 100%; justify-content: flex-start;" onclick="window.appHandlers.resetToCleanSeason()">Saison 1 auf Anfang zurücksetzen (Leere Runde 1)</button>
+              <button class="btn" onclick="window.appHandlers.createNewRoundPrompt()">+ Neue Runde</button>
+              <button class="btn" onclick="window.appHandlers.extendDeadline(24)">Frist +24h</button>
+              <button class="btn" onclick="window.appHandlers.exportJsonBackup()">Backup (JSON)</button>
+              <button class="btn" style="color: var(--negative); width: 100%; justify-content: flex-start;" onclick="window.appHandlers.resetToCleanSeason()">Saison zurücksetzen</button>
               ${league.members.map(m => {
                 const u = getUserById(m.user_id);
                 const bal = (round.ballots || []).find(b => b.voter_id === u.id);
@@ -1440,7 +1451,7 @@ function renderMenuDrawer(league, round, user) {
                 return `
                   <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding-top: 4px;">
                     <span>${escapeHtml(u.name)}</span>
-                    ${isLocked ? `<button class="btn-text" onclick="window.appHandlers.unlockBallot('${u.id}')">Vote entsperren</button>` : `<span style="color:var(--text-muted);">Offen</span>`}
+                    ${isLocked ? `<button class="btn-text" onclick="window.appHandlers.unlockBallot('${u.id}')">Entsperren</button>` : `<span style="color:var(--text-muted);">Offen</span>`}
                   </div>
                 `;
               }).join('')}
