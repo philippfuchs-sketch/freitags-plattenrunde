@@ -1,7 +1,7 @@
 services:
-  plattenrunde:
+  tonspur:
     build: .
-    container_name: plattenrunde
+    container_name: tonspur
     restart: unless-stopped
     ports:
       - "127.0.0.1:${HOST_PORT:-3000}:3000"

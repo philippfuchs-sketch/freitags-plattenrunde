@@ -1,4 +1,4 @@
-# Freitags-Plattenrunde — Dual-Platform Music Voting League
+# Freitags-Tonspur — Dual-Platform Music Voting League
 
 Soziales Musik-Voting-Spiel (vom Typ *Music League*) mit automatischer Dual-Plattform-Unterstützung (**Spotify & YouTube**), Album-Cover-Artwork, Detektiv-Wertung (*„Wer war's?“* + *„Offensichtlicher Song“*) und reduziertem Editorial-Design (*Warm Dark* & *Warm Paper*).
 
@@ -43,7 +43,7 @@ Damit die App dauerhaft im Hintergrund weiterläuft, wenn du das SSH-Fenster sch
 
 ```bash
 npm install -g pm2
-pm2 start server.js --name plattenrunde
+pm2 start server.js --name tonspur
 pm2 save
 pm2 startup
 ```
@@ -84,10 +84,10 @@ Die App funktioniert **vollständig ohne externe API-Keys**:
 
 ### Optionale Live-Suche nach Songtiteln & Interpreten
 
-Wenn Mitspieler Songs direkt per Freitextsuche (ohne vorheriges Kopieren eines Links) weltweit durchsuchen können sollen, kannst du kostenlose API-Schlüssel in `/root/plattenrunde/.env` eintragen:
+Wenn Mitspieler Songs direkt per Freitextsuche (ohne vorheriges Kopieren eines Links) weltweit durchsuchen können sollen, kannst du kostenlose API-Schlüssel in `.env` eintragen:
 
 ```bash
-# In /root/plattenrunde/.env
+# In .env
 SPOTIFY_CLIENT_ID=deine_spotify_client_id
 SPOTIFY_CLIENT_SECRET=deine_spotify_client_secret
 YOUTUBE_API_KEY=dein_youtube_api_key  # Optional
@@ -95,7 +95,7 @@ YOUTUBE_API_KEY=dein_youtube_api_key  # Optional
 
 1. **Spotify Web API**:
    - Im [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) mit deinem normalen Spotify-Konto einloggen.
-   - Auf **„Create App“** klicken (App-Name z. B. `Plattenrunde`, Redirect URI: `http://localhost`).
+   - Auf **„Create App“** klicken (App-Name z. B. `Tonspur`, Redirect URI: `http://localhost`).
    - Unter **Settings** die `Client ID` und das `Client Secret` kopieren.
 2. Nach dem Eintragen in `.env` einmal den Container neu starten:
    ```bash

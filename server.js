@@ -248,7 +248,7 @@ function createInitialDb() {
         id: 'user_1',
         name: 'Philipp',
         email: 'philipp@byfanger57.de',
-        preferred_platform: 'spotify',
+        preferred_platform: 'youtube',
         preferred_theme: 'dark',
         notifications: { email_enabled: true, web_push_enabled: true, deadline_reminders_enabled: true },
         bookmarks: []
@@ -257,8 +257,8 @@ function createInitialDb() {
     leagues: [
       {
         id: 'league_01',
-        name: 'Freitags-Plattenrunde',
-        invite_code: 'PLATTE26',
+        name: 'Freitags-Tonspur',
+        invite_code: 'TONSPUR26',
         season_number: 1,
         season_target_rounds: 6,
         host_user_id: 'user_1',
@@ -907,8 +907,8 @@ const server = http.createServer(async (req, res) => {
           user = {
             id: 'user_' + Date.now(),
             name: String(payload.name || 'Neuer Spieler').trim(),
-            email: String(payload.email || 'neu@plattenrunde.de').trim(),
-            preferred_platform: payload.preferred_platform || 'spotify',
+            email: String(payload.email || 'neu@tonspur.de').trim(),
+            preferred_platform: payload.preferred_platform || 'youtube',
             preferred_theme: payload.preferred_theme || 'dark',
             notifications: {
               email_enabled: payload.email_enabled !== false,
