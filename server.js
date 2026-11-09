@@ -379,8 +379,73 @@ function extractSpotifyTrackId(input) {
 }
 
 function extractYoutubeVideoId(input) {
-  const m = String(input).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube(?:-nocookie)?\.com\/embed\/)([a-zA-Z0-9_-]{11})/i);
+  const m = String(input).match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?.*v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/i);
   return m ? m[1] : null;
+}
+
+async function fetchYoutubeOEmbed(ytId) {
+  if (!ytId) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`;
+    const resp = await fetch(oembedUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (resp.ok) {
+      const data = await resp.json();
+      const rawTitle = data.title || 'YouTube Track';
+      let title = rawTitle;
+      let artist = data.author_name || 'YouTube';
+      if (rawTitle.includes(' - ')) {
+        const parts = rawTitle.split(' - ');
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' - ').trim();
+      }
+      return {
+        title,
+        artist,
+        album: 'YouTube Video',
+        cover_url: data.thumbnail_url || `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
+        platforms: {
+          spotify: null,
+          youtube: {
+            video_id: ytId,
+            url: `https://www.youtube.com/watch?v=${ytId}`
+          }
+        },
+        single_platform_only: true
+      };
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function searchUniversalCatalog(query) {
+  if (!query || query.length < 2) return [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=8`;
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (resp.ok) {
+      const data = await resp.json();
+      return (data.results || []).map(r => ({
+        title: r.trackName,
+        artist: r.artistName,
+        album: r.collectionName || 'Single / Album',
+        cover_url: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '300x300bb') : makeAlbumCoverSvg(r.trackName, r.artistName),
+        platforms: {
+          spotify: null,
+          youtube: {
+            video_id: null,
+            url: `https://www.youtube.com/results?search_query=${encodeURIComponent(r.artistName + ' ' + r.trackName)}`
+          }
+        }
+      }));
+    }
+  } catch (_) {}
+  return [];
 }
 
 async function resolveTrackInput(queryOrUrl) {
@@ -460,7 +525,17 @@ async function resolveTrackInput(queryOrUrl) {
         return result;
       }
     } catch (_) {
-      // Fallback below if sandbox blocks external Odesli call
+      // Fallback below if external Odesli call times out
+    }
+
+    // Direct YouTube oEmbed fallback (instant metadata without API key)
+    if (ytId) {
+      const ytOembed = await fetchYoutubeOEmbed(ytId);
+      if (ytOembed) {
+        db.resolver_cache[cacheKey] = ytOembed;
+        saveDb(db);
+        return ytOembed;
+      }
     }
 
     // Deterministic fallback for custom Spotify or YouTube links
@@ -506,6 +581,16 @@ async function resolveTrackInput(queryOrUrl) {
       }
       return top;
     }
+  } catch (_) {}
+
+  try {
+    const ytHits = await searchYouTubeApi(raw);
+    if (ytHits.length > 0) return ytHits[0];
+  } catch (_) {}
+
+  try {
+    const uniHits = await searchUniversalCatalog(raw);
+    if (uniHits.length > 0) return uniHits[0];
   } catch (_) {}
 
   // 5. Free-text custom song entry fallback
@@ -679,11 +764,25 @@ const server = http.createServer(async (req, res) => {
     const platform = (parsedUrl.searchParams.get('platform') || 'all').toLowerCase();
     if (!q) return sendJson(res, 200, { results: CATALOG.slice(0, 8) });
 
+    // 1. Instant Direct URL resolution (YouTube or Spotify links)
+    const directSpId = extractSpotifyTrackId(q);
+    const directYtId = extractYoutubeVideoId(q);
+    if (directSpId || directYtId) {
+      try {
+        const resolved = await resolveTrackInput(q);
+        if (resolved) {
+          return sendJson(res, 200, { results: [resolved], source: 'direct_url' });
+        }
+      } catch (_) {}
+    }
+
+    // 2. Spotify live API
     let spotifyResults = [];
     if (platform !== 'youtube') {
       spotifyResults = await searchSpotifyApi(q);
     }
 
+    // 3. YouTube live API (if key configured)
     let youtubeResults = [];
     if (platform === 'youtube' || (!spotifyResults.length && process.env.YOUTUBE_API_KEY)) {
       youtubeResults = await searchYouTubeApi(q);
@@ -694,7 +793,13 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { results: liveResults.slice(0, 8), source: 'live_api' });
     }
 
-    // Curated catalog fallback
+    // 4. Universal open music catalog (zero auth, 100% free search for any song)
+    const universalResults = await searchUniversalCatalog(q);
+    if (universalResults.length > 0) {
+      return sendJson(res, 200, { results: universalResults.slice(0, 8), source: 'universal_api' });
+    }
+
+    // 5. Curated local catalog fallback
     const qLower = q.toLowerCase();
     const matches = CATALOG.filter(item =>
       item.title.toLowerCase().includes(qLower) ||

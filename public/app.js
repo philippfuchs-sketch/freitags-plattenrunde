@@ -855,7 +855,25 @@ function renderCleanVotingAccordion(league, round, user) {
 
                 <!-- Clean Embedded Player -->
                 <div class="embed-box">
-                  ${effectivePlatform === 'spotify' ? `
+                  ${effectivePlatform === 'spotify' && track.platforms?.spotify?.track_id ? `
+                    <iframe
+                      src="https://open.spotify.com/embed/track/${encodeURIComponent(track.platforms.spotify.track_id)}?utm_source=generator&theme=0"
+                      width="100%"
+                      height="152"
+                      frameBorder="0"
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                    ></iframe>
+                  ` : track.platforms?.youtube?.video_id ? `
+                    <iframe
+                      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(track.platforms.youtube.video_id)}?rel=0"
+                      width="100%"
+                      height="210"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  ` : track.platforms?.spotify?.track_id ? `
                     <iframe
                       src="https://open.spotify.com/embed/track/${encodeURIComponent(track.platforms.spotify.track_id)}?utm_source=generator&theme=0"
                       width="100%"
@@ -865,27 +883,26 @@ function renderCleanVotingAccordion(league, round, user) {
                       loading="lazy"
                     ></iframe>
                   ` : `
-                    <iframe
-                      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(track.platforms.youtube.video_id)}?rel=0"
-                      width="100%"
-                      height="210"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
+                    <div style="padding: 16px; text-align: center;">
+                      <a href="${track.platforms?.youtube?.url || `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`}" target="_blank" rel="noopener noreferrer" class="btn btn-accent">
+                        Song auf YouTube öffnen ↗
+                      </a>
+                    </div>
                   `}
                   <div class="embed-toolbar">
                     <span>
                       ${effectivePlatform === 'spotify' ? 'Nur 30s Vorschau ohne Abo?' : 'YouTube-Wiedergabe in voller Länge'}
                     </span>
                     <div style="display: flex; align-items: center; gap: 14px;">
-                      <button
-                        type="button"
-                        class="btn-text"
-                        onclick="window.appHandlers.toggleTrackPlatform('${track.id}', '${effectivePlatform === 'spotify' ? 'youtube' : 'spotify'}')"
-                      >
-                        ${effectivePlatform === 'spotify' ? 'YouTube ↗' : 'Spotify ↗'}
-                      </button>
+                      ${(track.platforms?.youtube?.url || track.platforms?.youtube?.video_id) ? `
+                        <button
+                          type="button"
+                          class="btn-text"
+                          onclick="window.appHandlers.toggleTrackPlatform('${track.id}', '${effectivePlatform === 'spotify' ? 'youtube' : 'spotify'}')"
+                        >
+                          ${effectivePlatform === 'spotify' ? 'Auf YouTube wechseln' : 'Auf Spotify wechseln'}
+                        </button>
+                      ` : ''}
                       <button
                         type="button"
                         class="btn-text"
