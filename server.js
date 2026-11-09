@@ -420,6 +420,27 @@ async function fetchYoutubeOEmbed(ytId) {
   return null;
 }
 
+async function findYoutubeVideoId(artist, title) {
+  if (!artist && !title) return null;
+  try {
+    const q = `${artist} ${title} audio`;
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" }
+    });
+    clearTimeout(timeout);
+    if (resp.ok) {
+      const html = await resp.text();
+      const m = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+      return m ? m[1] : null;
+    }
+  } catch (_) {}
+  return null;
+}
+
 async function searchUniversalCatalog(query) {
   if (!query || query.length < 2) return [];
   try {
@@ -435,6 +456,7 @@ async function searchUniversalCatalog(query) {
         artist: r.artistName,
         album: r.collectionName || 'Single / Album',
         cover_url: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '300x300bb') : makeAlbumCoverSvg(r.trackName, r.artistName),
+        audio_preview_url: r.previewUrl || null,
         platforms: {
           spotify: null,
           youtube: {
@@ -590,7 +612,17 @@ async function resolveTrackInput(queryOrUrl) {
 
   try {
     const uniHits = await searchUniversalCatalog(raw);
-    if (uniHits.length > 0) return uniHits[0];
+    if (uniHits.length > 0) {
+      const top = uniHits[0];
+      const ytId = await findYoutubeVideoId(top.artist, top.title);
+      if (ytId) {
+        top.platforms.youtube = {
+          video_id: ytId,
+          url: `https://www.youtube.com/watch?v=${ytId}`
+        };
+      }
+      return top;
+    }
   } catch (_) {}
 
   // 5. Free-text custom song entry fallback
@@ -813,7 +845,22 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/resolve') {
     try {
       const body = await parseBody(req);
-      const resolved = await resolveTrackInput(body.queryOrUrl);
+      let resolved = null;
+      if (body.track) {
+        resolved = { ...body.track };
+        if (!resolved.platforms?.youtube?.video_id) {
+          const ytId = await findYoutubeVideoId(resolved.artist, resolved.title);
+          if (ytId) {
+            resolved.platforms = resolved.platforms || {};
+            resolved.platforms.youtube = {
+              video_id: ytId,
+              url: `https://www.youtube.com/watch?v=${ytId}`
+            };
+          }
+        }
+      } else {
+        resolved = await resolveTrackInput(body.queryOrUrl);
+      }
       return sendJson(res, 200, { resolved });
     } catch (err) {
       return sendJson(res, 400, { error: err.message || 'Auflösung fehlgeschlagen' });

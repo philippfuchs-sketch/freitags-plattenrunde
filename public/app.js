@@ -9,7 +9,7 @@ const state = {
   currentRoundId: 'round_01',
   currentUserId: 'user_1',   // Host (Philipp)
   mainView: 'ROUND',        // 'ROUND' | 'SEASON' | 'BOOKMARKS' | 'NOTIFICATIONS' | 'PROFILE'
-  platformMode: 'spotify',  // 'spotify' | 'youtube'
+  platformMode: 'youtube',  // 'youtube' | 'spotify'
   perTrackPlatform: {},     // { [trackId]: 'spotify' | 'youtube' }
   expandedTrackId: null,    // Accordion: only 1 song expanded at a time
   theme: 'dark',            // 'dark' | 'light'
@@ -149,7 +149,7 @@ async function fetchInitialState() {
   const user = getCurrentUser();
   if (user) {
     state.currentUserId = user.id;
-    state.platformMode = user.preferred_platform || 'spotify';
+    state.platformMode = user.preferred_platform || 'youtube';
     state.theme = user.preferred_theme || 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
   }
@@ -457,7 +457,11 @@ function render() {
         </button>
       </div>
 
-      <div class="nav-right">
+      <div class="nav-right" style="display: flex; align-items: center; gap: 8px;">
+        <div class="segmented" style="height: 28px; padding: 2px;">
+          <button style="padding: 0 8px; font-size: 11px;" class="${state.platformMode === 'youtube' ? 'active' : ''}" onclick="window.appHandlers.setGlobalPlatform('youtube')">YouTube</button>
+          <button style="padding: 0 8px; font-size: 11px;" class="${state.platformMode === 'spotify' ? 'active' : ''}" onclick="window.appHandlers.setGlobalPlatform('spotify')">Spotify</button>
+        </div>
         <!-- Slide-Over Menu Button -->
         <button class="menu-btn" onclick="window.appHandlers.toggleMenu()">
           <span>${escapeHtml(user.name)}</span>
@@ -661,15 +665,54 @@ function renderCleanSubmission(league, round, user) {
         </div>
 
         ${sel ? `
-          <div style="padding: 14px; border: 1px solid var(--border); border-radius: 8px; background-color: var(--surface-inset); display: flex; align-items: center; justify-content: space-between; gap: 14px;">
-            <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
-              <img src="${sel.cover_url}" alt="" class="album-cover" />
-              <div style="min-width: 0;">
-                <div style="font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(sel.title)}</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(sel.artist)}</div>
+          <div style="padding: 14px; border: 1px solid var(--border); border-radius: 8px; background-color: var(--surface-inset); display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+                <img src="${sel.cover_url}" alt="" class="album-cover" style="width: 48px; height: 48px; flex-shrink: 0;" />
+                <div style="min-width: 0;">
+                  <div style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(sel.title)}</div>
+                  <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(sel.artist)}</div>
+                </div>
               </div>
+              <span style="font-size: 12px; color: var(--positive); flex-shrink: 0;">Ausgewählt ✓</span>
             </div>
-            <span style="font-size: 12px; color: var(--positive); flex-shrink: 0;">Spotify &amp; YouTube verknüpft ✓</span>
+
+            <!-- In-App Player / Audio Preview -->
+            ${sel.platforms?.youtube?.video_id ? `
+              <div style="border-radius: 6px; overflow: hidden; background: #000; margin-top: 2px;">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(sel.platforms.youtube.video_id)}?rel=0"
+                  width="100%"
+                  height="200"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            ` : sel.audio_preview_url ? `
+              <div style="margin-top: 2px;">
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Audio-Vorschau abspielen:</div>
+                <audio controls src="${sel.audio_preview_url}" style="width: 100%; height: 36px;"></audio>
+              </div>
+            ` : ''}
+
+            <!-- External direct links -->
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-subtle); font-size: 12px;">
+              ${(sel.platforms?.youtube?.url || sel.platforms?.youtube?.video_id) ? `
+                <a href="${sel.platforms.youtube?.url || `https://www.youtube.com/watch?v=${sel.platforms.youtube.video_id}`}" target="_blank" rel="noopener noreferrer" class="btn-text" style="color: var(--accent); font-weight: 500;">
+                  Auf YouTube abspielen ↗
+                </a>
+              ` : `
+                <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(sel.artist + ' ' + sel.title)}" target="_blank" rel="noopener noreferrer" class="btn-text" style="color: var(--accent); font-weight: 500;">
+                  Auf YouTube suchen ↗
+                </a>
+              `}
+              ${sel.platforms?.spotify?.url ? `
+                <a href="${sel.platforms.spotify.url}" target="_blank" rel="noopener noreferrer" class="btn-text">
+                  Auf Spotify öffnen ↗
+                </a>
+              ` : ''}
+            </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -1615,7 +1658,7 @@ window.appHandlers = {
   changeUser(userId) {
     state.currentUserId = userId;
     const user = getCurrentUser();
-    if (user) state.platformMode = user.preferred_platform || 'spotify';
+    if (user) state.platformMode = user.preferred_platform || 'youtube';
     state.menuOpen = false;
     syncLocalFormsFromDb();
     showToast(`Angemeldet als ${user.name}`);
@@ -1680,20 +1723,17 @@ window.appHandlers = {
     state.subSearchResults = [];
     render();
 
-    const spUrl = item.platforms?.spotify?.url;
-    const ytUrl = item.platforms?.youtube?.url;
-    if ((spUrl && !ytUrl) || (ytUrl && !spUrl)) {
+    if (!state.subSelectedTrack.platforms?.youtube?.video_id) {
       try {
-        const queryOrUrl = spUrl || ytUrl;
         const res = await fetch('/api/resolve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryOrUrl })
+          body: JSON.stringify({ track: state.subSelectedTrack, queryOrUrl: `${state.subSelectedTrack.artist} ${state.subSelectedTrack.title}` })
         });
         if (res.ok) {
           const data = await res.json();
           if (data.resolved) {
-            state.subSelectedTrack = data.resolved;
+            state.subSelectedTrack = { ...state.subSelectedTrack, ...data.resolved };
             render();
           }
         }
@@ -1766,20 +1806,17 @@ window.appHandlers = {
     state.calloutSearchResults = [];
     render();
 
-    const spUrl = item.platforms?.spotify?.url;
-    const ytUrl = item.platforms?.youtube?.url;
-    if ((spUrl && !ytUrl) || (ytUrl && !spUrl)) {
+    if (!state.calloutSelectedTrack.platforms?.youtube?.video_id) {
       try {
-        const queryOrUrl = spUrl || ytUrl;
         const res = await fetch('/api/resolve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryOrUrl })
+          body: JSON.stringify({ track: state.calloutSelectedTrack, queryOrUrl: `${state.calloutSelectedTrack.artist} ${state.calloutSelectedTrack.title}` })
         });
         if (res.ok) {
           const data = await res.json();
           if (data.resolved) {
-            state.calloutSelectedTrack = data.resolved;
+            state.calloutSelectedTrack = { ...state.calloutSelectedTrack, ...data.resolved };
             render();
           }
         }
