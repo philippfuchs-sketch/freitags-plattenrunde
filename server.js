@@ -238,60 +238,19 @@ const CATALOG = [
 // INITIAL DATABASE SEED
 // ============================================================================
 function createInitialDb() {
+  const now = Date.now();
+  const subDeadline = new Date(now + 5 * 86400000).toISOString();
+  const voteDeadline = new Date(now + 9 * 86400000).toISOString();
+
   return {
     users: [
       {
         id: 'user_1',
-        name: 'Alex',
-        email: 'alex@plattenrunde.de',
+        name: 'Philipp',
+        email: 'philipp@byfanger57.de',
         preferred_platform: 'spotify',
         preferred_theme: 'dark',
         notifications: { email_enabled: true, web_push_enabled: true, deadline_reminders_enabled: true },
-        bookmarks: ['track_r4_1', 'track_r4_4']
-      },
-      {
-        id: 'user_2',
-        name: 'Mia',
-        email: 'mia@plattenrunde.de',
-        preferred_platform: 'spotify',
-        preferred_theme: 'dark',
-        notifications: { email_enabled: true, web_push_enabled: true, deadline_reminders_enabled: true },
-        bookmarks: ['track_r4_1', 'track_r1_1']
-      },
-      {
-        id: 'user_3',
-        name: 'Lukas',
-        email: 'lukas@plattenrunde.de',
-        preferred_platform: 'youtube',
-        preferred_theme: 'light',
-        notifications: { email_enabled: true, web_push_enabled: false, deadline_reminders_enabled: true },
-        bookmarks: []
-      },
-      {
-        id: 'user_4',
-        name: 'Sarah',
-        email: 'sarah@plattenrunde.de',
-        preferred_platform: 'spotify',
-        preferred_theme: 'dark',
-        notifications: { email_enabled: true, web_push_enabled: true, deadline_reminders_enabled: false },
-        bookmarks: []
-      },
-      {
-        id: 'user_5',
-        name: 'Jonas',
-        email: 'jonas@plattenrunde.de',
-        preferred_platform: 'youtube',
-        preferred_theme: 'dark',
-        notifications: { email_enabled: true, web_push_enabled: true, deadline_reminders_enabled: true },
-        bookmarks: []
-      },
-      {
-        id: 'user_6',
-        name: 'Elena',
-        email: 'elena@plattenrunde.de',
-        preferred_platform: 'spotify',
-        preferred_theme: 'light',
-        notifications: { email_enabled: false, web_push_enabled: false, deadline_reminders_enabled: false },
         bookmarks: []
       }
     ],
@@ -299,454 +258,41 @@ function createInitialDb() {
       {
         id: 'league_01',
         name: 'Freitags-Plattenrunde',
-        invite_code: 'SYNTH84',
+        invite_code: 'PLATTE26',
         season_number: 1,
         season_target_rounds: 6,
         host_user_id: 'user_1',
-        co_host_user_id: 'user_2',
+        co_host_user_id: null,
         next_theme_nominated_by: 'user_1',
-        active_round_id: 'round_04',
+        active_round_id: 'round_01',
         members: [
-          { user_id: 'user_1', role: 'HOST', status: 'ACTIVE' },
-          { user_id: 'user_2', role: 'CO_HOST', status: 'ACTIVE' },
-          { user_id: 'user_3', role: 'PLAYER', status: 'ACTIVE' },
-          { user_id: 'user_4', role: 'PLAYER', status: 'ACTIVE' },
-          { user_id: 'user_5', role: 'PLAYER', status: 'ACTIVE' },
-          { user_id: 'user_6', role: 'PLAYER', status: 'PAUSED' }
+          { user_id: 'user_1', role: 'HOST', status: 'ACTIVE' }
         ],
         theme_ideas: [
-          { id: 'idea_1', title: 'Songs mit einer Zahl im Titel', description: 'Egal ob 99 Luftballons, Seven Nation Army oder 1979.', suggested_by: 'user_2', votes: ['user_1', 'user_2', 'user_4'] },
-          { id: 'idea_2', title: 'Acoustic Unplugged & Live-Aufnahmen', description: 'Keine Studio-Versionen – nur echte Live-Energie.', suggested_by: 'user_3', votes: ['user_3', 'user_5'] },
-          { id: 'idea_3', title: 'Fremdsprachige Perlen (Kein Englisch / Kein Deutsch)', description: 'Französisch, Spanisch, Japanisch, Isländisch...', suggested_by: 'user_4', votes: ['user_1', 'user_4'] }
+          { id: 'idea_1', title: 'Songs mit einer Zahl im Titel', description: 'Egal ob 99 Luftballons, Seven Nation Army oder 1979.', suggested_by: 'user_1', votes: ['user_1'] },
+          { id: 'idea_2', title: 'Acoustic Unplugged & Live-Aufnahmen', description: 'Keine Studio-Versionen – nur echte Live-Energie.', suggested_by: 'user_1', votes: ['user_1'] },
+          { id: 'idea_3', title: 'Fremdsprachige Perlen (Kein Englisch / Kein Deutsch)', description: 'Französisch, Spanisch, Japanisch, Isländisch...', suggested_by: 'user_1', votes: ['user_1'] }
         ],
         rounds: [
-          // ---------------- ROUND 01 (COMPLETED ARCHIVE) ----------------
           {
             id: 'round_01',
             number: 1,
-            title: 'Post-Punk & Dark Wave',
-            description: 'Dunkle Bassläufe, unterkühlte Drums und kantige Gitarren der späten 70er und frühen 80er.',
-            phase: 'REVEAL',
-            points_budget: 10,
-            max_points_per_track: 3,
-            max_one_per_artist: true,
-            submission_deadline: '2026-10-15T20:00:00Z',
-            voting_deadline: '2026-10-19T20:00:00Z',
-            tracks: [
-              {
-                id: 'track_r1_1',
-                shuffle_order: 1,
-                title: 'Love Will Tear Us Apart',
-                artist: 'Joy Division',
-                album: 'Single (1980)',
-                normalized_key: normalizeSongKey('Joy Division', 'Love Will Tear Us Apart'),
-                cover_url: CATALOG[12].cover_url,
-                pitch: 'Unsterblicher Klassiker aus Manchester.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_2',
-                platforms: CATALOG[12].platforms,
-                replies: [
-                  { id: 'rep_r1_1', user_id: 'user_2', text: 'Danke euch für die 11 Punkte zum Auftakt!', created_at: '2026-10-19T20:15:00Z' }
-                ]
-              },
-              {
-                id: 'track_r1_2',
-                shuffle_order: 2,
-                title: 'A Forest',
-                artist: 'The Cure',
-                album: 'Seventeen Seconds (1980)',
-                normalized_key: normalizeSongKey('The Cure', 'A Forest'),
-                cover_url: CATALOG[13].cover_url,
-                pitch: 'Hypnotischer Basslauf über fast sechs Minuten.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_1',
-                platforms: CATALOG[13].platforms,
-                replies: []
-              },
-              {
-                id: 'track_r1_3',
-                shuffle_order: 3,
-                title: 'Once in a Lifetime',
-                artist: 'Talking Heads',
-                album: 'Remain in Light (1980)',
-                normalized_key: normalizeSongKey('Talking Heads', 'Once in a Lifetime'),
-                cover_url: CATALOG[8].cover_url,
-                pitch: 'Brian Eno + David Byrne auf dem Höhepunkt.',
-                pitch_visibility: 'REVEAL',
-                submitted_by: 'user_4',
-                platforms: CATALOG[8].platforms,
-                replies: []
-              }
-            ],
-            callouts: [
-              { user_id: 'user_1', predicted_track: { title: 'Love Will Tear Us Apart', artist: 'Joy Division', normalized_key: normalizeSongKey('Joy Division', 'Love Will Tear Us Apart'), cover_url: CATALOG[12].cover_url } },
-              { user_id: 'user_2', predicted_track: { title: 'A Forest', artist: 'The Cure', normalized_key: normalizeSongKey('The Cure', 'A Forest'), cover_url: CATALOG[13].cover_url } }
-            ],
-            ballots: [
-              {
-                voter_id: 'user_1',
-                status: 'SUBMITTED',
-                votes: [
-                  { track_id: 'track_r1_1', points: 3, comment: 'Perfekter Opener für die Saison.', guessed_user_id: 'user_2' },
-                  { track_id: 'track_r1_3', points: 2, comment: 'Groove ohne Ende.', guessed_user_id: 'user_4' }
-                ]
-              },
-              {
-                voter_id: 'user_2',
-                status: 'SUBMITTED',
-                votes: [
-                  { track_id: 'track_r1_2', points: 3, comment: 'Atmosphärisch unschlagbar.', guessed_user_id: 'user_1' },
-                  { track_id: 'track_r1_3', points: 2, comment: 'Immer wieder stark.', guessed_user_id: 'user_3' }
-                ]
-              },
-              {
-                voter_id: 'user_3',
-                status: 'SUBMITTED',
-                votes: [
-                  { track_id: 'track_r1_1', points: 3, comment: 'Pflichtpunkte.', guessed_user_id: 'user_2' },
-                  { track_id: 'track_r1_2', points: 2, comment: 'Gute Wahl.', guessed_user_id: null }
-                ]
-              },
-              {
-                voter_id: 'user_4',
-                status: 'SUBMITTED',
-                votes: [
-                  { track_id: 'track_r1_1', points: 3, comment: 'Zeitlos.', guessed_user_id: 'user_2' },
-                  { track_id: 'track_r1_2', points: 3, comment: 'Lieblingssong von The Cure.', guessed_user_id: 'user_1' }
-                ]
-              },
-              {
-                voter_id: 'user_5',
-                status: 'SUBMITTED',
-                votes: [
-                  { track_id: 'track_r1_1', points: 2, comment: 'Klassiker.', guessed_user_id: null },
-                  { track_id: 'track_r1_3', points: 3, comment: 'Same as it ever was!', guessed_user_id: 'user_4' }
-                ]
-              }
-            ]
-          },
-
-          // ---------------- ROUND 04 (ACTIVE CURRENT ROUND) ----------------
-          {
-            id: 'round_04',
-            number: 4,
-            title: '80s Synth & New Wave',
-            description: 'Songs mit prägnanten Synthesizern, Drum-Machines und unterkühlter Eleganz.',
-            phase: 'VOTING',
-            points_budget: 10,
-            max_points_per_track: 3,
-            max_one_per_artist: true,
-            submission_deadline: '2026-11-10T20:00:00Z',
-            voting_deadline: '2026-11-15T20:00:00Z',
-            tracks: [
-              {
-                id: 'track_r4_1',
-                shuffle_order: 1,
-                title: 'Heroes',
-                artist: 'David Bowie',
-                album: '“Heroes” (1977)',
-                normalized_key: normalizeSongKey('David Bowie', 'Heroes'),
-                cover_url: CATALOG[0].cover_url,
-                pitch: 'Mein absoluter Gänsehaut-Track bei Nachtfahrten durch Berlin.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_1',
-                platforms: CATALOG[0].platforms,
-                replies: [
-                  { id: 'rep_1', user_id: 'user_1', text: 'Hansaton-Studios in Kreuzberg – der Synthesizer von Brian Eno trägt das ganze Stück.', created_at: '2026-11-09T11:00:00Z' }
-                ]
-              },
-              {
-                id: 'track_r4_2',
-                shuffle_order: 2,
-                title: 'Blue Monday',
-                artist: 'New Order',
-                album: 'Power, Corruption & Lies (1983)',
-                normalized_key: normalizeSongKey('New Order', 'Blue Monday'),
-                cover_url: CATALOG[1].cover_url,
-                pitch: 'Die meistverkaufte 12-Inch-Maxi-Single der Musikgeschichte.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_2',
-                platforms: CATALOG[1].platforms,
-                replies: []
-              },
-              {
-                id: 'track_r4_3',
-                shuffle_order: 3,
-                title: 'Enjoy the Silence',
-                artist: 'Depeche Mode',
-                album: 'Violator (1990)',
-                normalized_key: normalizeSongKey('Depeche Mode', 'Enjoy the Silence'),
-                cover_url: CATALOG[2].cover_url,
-                pitch: 'Lief auf unserer gemeinsamen Rückfahrt aus Dänemark in Dauerschleife (daher erst bei Auflösung sichtbar!).',
-                pitch_visibility: 'REVEAL',
-                submitted_by: 'user_4',
-                platforms: CATALOG[2].platforms,
-                replies: []
-              },
-              {
-                id: 'track_r4_4',
-                shuffle_order: 4,
-                title: 'Take On Me',
-                artist: 'a-ha',
-                album: 'Hunting High and Low (1985)',
-                normalized_key: normalizeSongKey('a-ha', 'Take On Me'),
-                cover_url: CATALOG[3].cover_url,
-                pitch: 'Jeder kennt das Riff nach einer halben Sekunde – trotzdem handwerklich brillant.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_3',
-                platforms: CATALOG[3].platforms,
-                replies: []
-              },
-              {
-                id: 'track_r4_5',
-                shuffle_order: 5,
-                title: 'Everybody Wants to Rule the World',
-                artist: 'Tears for Fears',
-                album: 'Songs from the Big Chair (1985)',
-                normalized_key: normalizeSongKey('Tears for Fears', 'Everybody Wants to Rule the World'),
-                cover_url: CATALOG[4].cover_url,
-                pitch: 'Für mich die beste Produktion des gesamten Jahrzehnts.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_5',
-                platforms: CATALOG[4].platforms,
-                replies: []
-              }
-            ],
-            callouts: [
-              {
-                user_id: 'user_2',
-                predicted_track: {
-                  title: 'Take On Me',
-                  artist: 'a-ha',
-                  normalized_key: normalizeSongKey('a-ha', 'Take On Me'),
-                  cover_url: CATALOG[3].cover_url,
-                  spotify_track_id: '2WfaOiMkCvy7F5fcp2zZ8L',
-                  youtube_video_id: 'djV11Xbc914'
-                }
-              },
-              {
-                user_id: 'user_1',
-                predicted_track: {
-                  title: 'Sweet Dreams (Are Made of This)',
-                  artist: 'Eurythmics',
-                  normalized_key: normalizeSongKey('Eurythmics', 'Sweet Dreams (Are Made of This)'),
-                  cover_url: CATALOG[5].cover_url,
-                  spotify_track_id: '1TfqLAPs4K3s2rJMoCokcS',
-                  youtube_video_id: 'qeMFqkcPYcg'
-                }
-              },
-              {
-                user_id: 'user_4',
-                predicted_track: {
-                  title: 'Blue Monday',
-                  artist: 'New Order',
-                  normalized_key: normalizeSongKey('New Order', 'Blue Monday'),
-                  cover_url: CATALOG[1].cover_url,
-                  spotify_track_id: '6hHc7Pks7wtBIW8Z6A0iFq',
-                  youtube_video_id: 'FYH8DsU2WCk'
-                }
-              },
-              {
-                user_id: 'user_3',
-                predicted_track: {
-                  title: 'Tainted Love',
-                  artist: 'Soft Cell',
-                  normalized_key: normalizeSongKey('Soft Cell', 'Tainted Love'),
-                  cover_url: CATALOG[6].cover_url,
-                  spotify_track_id: '0cGG2EouYCEEC3xfa0tDFV',
-                  youtube_video_id: 'XZVpR3Pk-r8'
-                }
-              },
-              {
-                user_id: 'user_5',
-                predicted_track: {
-                  title: 'Enjoy the Silence',
-                  artist: 'Depeche Mode',
-                  normalized_key: normalizeSongKey('Depeche Mode', 'Enjoy the Silence'),
-                  cover_url: CATALOG[2].cover_url,
-                  spotify_track_id: '6WK9dVrRABMkUXFLNlgWFh',
-                  youtube_video_id: 'aGSKrC7dGcY'
-                }
-              }
-            ],
-            ballots: [
-              {
-                voter_id: 'user_1',
-                status: 'SUBMITTED',
-                saved_at: '2026-11-08T20:40:00Z',
-                submitted_at: '2026-11-08T20:42:00Z',
-                votes: [
-                  { track_id: 'track_r4_2', points: 3, comment: 'Die Kickdrum kommt immer noch wie ein Uhrwerk.', guessed_user_id: 'user_2' },
-                  { track_id: 'track_r4_3', points: 3, comment: 'Melancholie pur, volle Punktzahl.', guessed_user_id: 'user_4' },
-                  { track_id: 'track_r4_4', points: 2, comment: 'Macht sofort gute Laune.', guessed_user_id: 'user_5' },
-                  { track_id: 'track_r4_5', points: 2, comment: 'Starker Shuffle-Beat.', guessed_user_id: null }
-                ]
-              },
-              {
-                voter_id: 'user_3',
-                status: 'SUBMITTED',
-                saved_at: '2026-11-08T21:00:00Z',
-                submitted_at: '2026-11-08T21:05:00Z',
-                votes: [
-                  { track_id: 'track_r4_1', points: 3, comment: 'Bowie + Eno + Visconti = unschlagbar.', guessed_user_id: 'user_1' },
-                  { track_id: 'track_r4_2', points: 3, comment: 'Zeitloser Club-Track.', guessed_user_id: 'user_2' },
-                  { track_id: 'track_r4_3', points: 2, comment: 'Klassiker.', guessed_user_id: null },
-                  { track_id: 'track_r4_5', points: 2, comment: 'Perfekter Drive.', guessed_user_id: 'user_5' }
-                ]
-              },
-              {
-                voter_id: 'user_4',
-                status: 'SUBMITTED',
-                saved_at: '2026-11-08T21:30:00Z',
-                submitted_at: '2026-11-08T21:32:00Z',
-                votes: [
-                  { track_id: 'track_r4_1', points: 3, comment: 'Gänsehaut ab der ersten Minute.', guessed_user_id: 'user_1' },
-                  { track_id: 'track_r4_2', points: 2, comment: 'Starker Bass-Synth.', guessed_user_id: 'user_5' },
-                  { track_id: 'track_r4_4', points: 3, comment: 'Heimlicher Favorit dieser Runde.', guessed_user_id: 'user_3' },
-                  { track_id: 'track_r4_5', points: 2, comment: 'Sehr rund.', guessed_user_id: null }
-                ]
-              },
-              {
-                voter_id: 'user_2',
-                status: 'DRAFT',
-                saved_at: '2026-11-09T03:55:00Z',
-                submitted_at: null,
-                votes: [
-                  { track_id: 'track_r4_1', points: 3, comment: 'Starkes Gitarren-Riff von Robert Fripp.', guessed_user_id: 'user_1' },
-                  { track_id: 'track_r4_3', points: 3, comment: 'Einer meiner absoluten Lieblingssongs.', guessed_user_id: 'user_4' },
-                  { track_id: 'track_r4_4', points: 2, comment: 'Mutige, aber sehr gute Wahl!', guessed_user_id: 'user_3' },
-                  { track_id: 'track_r4_5', points: 2, comment: 'Großartiger Song für lange Autofahrten.', guessed_user_id: null }
-                ]
-              },
-              {
-                voter_id: 'user_5',
-                status: 'SUBMITTED',
-                saved_at: '2026-11-08T22:10:00Z',
-                submitted_at: '2026-11-08T22:12:00Z',
-                votes: [
-                  { track_id: 'track_r4_1', points: 3, comment: 'Verdiente 3 Punkte.', guessed_user_id: 'user_1' },
-                  { track_id: 'track_r4_2', points: 2, comment: 'Geht immer.', guessed_user_id: 'user_4' },
-                  { track_id: 'track_r4_3', points: 3, comment: 'Gitarre + Synth harmonieren perfekt.', guessed_user_id: null },
-                  { track_id: 'track_r4_4', points: 2, comment: 'Starke falsett-Stimme von Morten Harket.', guessed_user_id: 'user_3' }
-                ]
-              }
-            ]
-          },
-
-          // ---------------- ROUND 05 (UPCOMING SCHEDULE) ----------------
-          {
-            id: 'round_05',
-            number: 5,
-            title: '90s Bristol Trip-Hop & Downbeat',
-            description: 'Schwere Beats, Vinyl-Knistern und cineastische Streicher (Portishead, Massive Attack, Tricky...).',
-            phase: 'UPCOMING',
-            points_budget: 10,
-            max_points_per_track: 3,
-            max_one_per_artist: true,
-            submission_deadline: '2026-11-22T20:00:00Z',
-            voting_deadline: '2026-11-26T20:00:00Z',
-            tracks: [],
-            callouts: [],
-            ballots: []
-          },
-          // ---------------- ROUND 06 (UPCOMING SCHEDULE) ----------------
-          {
-            id: 'round_06',
-            number: 6,
-            title: 'Longtracks: Songs über 7 Minuten',
-            description: 'Zeit für epische Spannungsbögen, lange Intros und ausgedehnte Instrumental-Passagen.',
-            phase: 'UPCOMING',
-            points_budget: 10,
-            max_points_per_track: 3,
-            max_one_per_artist: true,
-            submission_deadline: '2026-11-29T20:00:00Z',
-            voting_deadline: '2026-12-03T20:00:00Z',
-            tracks: [],
-            callouts: [],
-            ballots: []
-          }
-        ]
-      },
-
-      // ================ SECOND LEAGUE (MULTI-LEAGUE SWITCHER) ================
-      {
-        id: 'league_02',
-        name: 'Studio B · Kollegen-Liga',
-        invite_code: 'STUDIOB',
-        season_number: 1,
-        season_target_rounds: 8,
-        host_user_id: 'user_2',
-        co_host_user_id: 'user_1',
-        next_theme_nominated_by: 'user_2',
-        active_round_id: 'round_b1',
-        members: [
-          { user_id: 'user_2', role: 'HOST', status: 'ACTIVE' },
-          { user_id: 'user_1', role: 'CO_HOST', status: 'ACTIVE' },
-          { user_id: 'user_3', role: 'PLAYER', status: 'ACTIVE' }
-        ],
-        theme_ideas: [
-          { id: 'idea_b1', title: 'Songs zum konzentrierten Programmieren', description: 'Instrumental, Ambient oder treibender Minimal.', suggested_by: 'user_1', votes: ['user_1', 'user_2'] }
-        ],
-        rounds: [
-          {
-            id: 'round_b1',
-            number: 1,
-            title: 'Ikonische Basslines',
-            description: 'Songs, bei denen der E-Bass oder Synth-Bass die Hauptrolle spielt.',
+            title: 'Runde 01: Freie Wahl & Lieblingstracks',
+            description: 'Zum großen Auftakt der Saison: Reiche deinen absoluten All-Time-Favorite oder aktuellen Lieblingssong ein.',
             phase: 'SUBMISSION',
             points_budget: 10,
             max_points_per_track: 3,
             max_one_per_artist: true,
-            submission_deadline: '2026-11-14T18:00:00Z',
-            voting_deadline: '2026-11-18T18:00:00Z',
-            tracks: [
-              {
-                id: 'track_b1_1',
-                shuffle_order: 1,
-                title: 'Das Model',
-                artist: 'Kraftwerk',
-                album: 'Die Mensch-Maschine (1978)',
-                normalized_key: normalizeSongKey('Kraftwerk', 'Das Model'),
-                cover_url: CATALOG[9].cover_url,
-                pitch: 'Analoger Sequencer-Bass in Reinform.',
-                pitch_visibility: 'VOTING',
-                submitted_by: 'user_1',
-                platforms: CATALOG[9].platforms,
-                replies: []
-              }
-            ],
+            submission_deadline: subDeadline,
+            voting_deadline: voteDeadline,
+            tracks: [],
             callouts: [],
             ballots: []
           }
         ]
       }
     ],
-    notifications_log: [
-      {
-        id: 'notif_1',
-        timestamp: '2026-11-08T20:05:00Z',
-        type: 'PHASE_VOTING_READY',
-        recipient_user_id: 'user_2',
-        recipient_name: 'Mia',
-        channels: ['E-Mail', 'Web-Push'],
-        platform_preference: 'spotify',
-        subject: 'Freitags-Plattenrunde · Runde 04: Alle 5 Songs sind da!',
-        message: 'Alle aktiven Mitspieler haben ihren Song für „80s Synth & New Wave“ eingereicht. Deine Spotify-Playlist ist ab sofort bereit. Bitte vergib deine 10 Punkte bis Sonntag, 20:00 Uhr.',
-        playlist_url: 'https://open.spotify.com/track/7Jh1bpe7JJMuGhFi64neUt'
-      },
-      {
-        id: 'notif_2',
-        timestamp: '2026-11-08T20:05:00Z',
-        type: 'PHASE_VOTING_READY',
-        recipient_user_id: 'user_3',
-        recipient_name: 'Lukas',
-        channels: ['E-Mail'],
-        platform_preference: 'youtube',
-        subject: 'Freitags-Plattenrunde · Runde 04: Deine YouTube-Queue ist bereit!',
-        message: 'Alle Songs für „80s Synth & New Wave“ sind da. Öffne direkt deine dynamische YouTube-Warteschlange ohne Werbe-Tracking.',
-        playlist_url: 'https://www.youtube.com/watch_videos?video_ids=bsYp9q3QNaQ,FYH8DsU2WCk,aGSKrC7dGcY,djV11Xbc914,aGCdLKXNF3w'
-      }
-    ],
+    notifications_log: [],
     resolver_cache: {}
   };
 }
@@ -1465,6 +1011,27 @@ const server = http.createServer(async (req, res) => {
           league.theme_ideas = league.theme_ideas.filter(i => i.id !== idea.id);
           saveDb(db);
         }
+      if (type === 'HOST_RESET_TO_CLEAN_SEASON') {
+        const clean = createInitialDb();
+        const existingHost = db.users.find(u => u.id === payload.user_id) || db.users[0];
+        if (existingHost) {
+          clean.users[0].id = existingHost.id || 'user_1';
+          clean.users[0].name = existingHost.name || 'Philipp';
+          clean.users[0].email = existingHost.email || 'philipp@byfanger57.de';
+          clean.users[0].preferred_platform = existingHost.preferred_platform || 'spotify';
+          clean.users[0].preferred_theme = existingHost.preferred_theme || 'dark';
+          clean.leagues[0].host_user_id = clean.users[0].id;
+          clean.leagues[0].members[0].user_id = clean.users[0].id;
+          clean.leagues[0].next_theme_nominated_by = clean.users[0].id;
+        }
+        if (payload.first_round_title) {
+          clean.leagues[0].rounds[0].title = payload.first_round_title;
+        }
+        if (payload.first_round_desc) {
+          clean.leagues[0].rounds[0].description = payload.first_round_desc;
+        }
+        db = clean;
+        saveDb(db);
         return sendJson(res, 200, { db });
       }
 

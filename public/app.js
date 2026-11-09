@@ -6,12 +6,12 @@ const state = {
   db: null,
   catalog: [],
   currentLeagueId: 'league_01',
-  currentRoundId: 'round_04',
-  currentUserId: 'user_2',   // Mia
+  currentRoundId: 'round_01',
+  currentUserId: 'user_1',   // Host (Philipp)
   mainView: 'ROUND',        // 'ROUND' | 'SEASON' | 'BOOKMARKS' | 'NOTIFICATIONS' | 'PROFILE'
   platformMode: 'spotify',  // 'spotify' | 'youtube'
   perTrackPlatform: {},     // { [trackId]: 'spotify' | 'youtube' }
-  expandedTrackId: 'track_r4_1', // Accordion: only 1 song expanded at a time (default first track so user sees how it works)
+  expandedTrackId: null,    // Accordion: only 1 song expanded at a time
   theme: 'dark',            // 'dark' | 'light'
   menuOpen: false,          // Slide-over right menu drawer
 
@@ -140,8 +140,13 @@ async function fetchInitialState() {
   const data = await res.json();
   state.db = data.db;
   state.catalog = data.catalog || [];
+  const league = getCurrentLeague();
+  if (league) {
+    state.currentRoundId = league.active_round_id || league.rounds[0]?.id || 'round_01';
+  }
   const user = getCurrentUser();
   if (user) {
+    state.currentUserId = user.id;
     state.platformMode = user.preferred_platform || 'spotify';
     state.theme = user.preferred_theme || 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -1365,6 +1370,7 @@ function renderMenuDrawer(league, round, user) {
             ${state.hostToolsExpanded ? `
               <button class="btn" onclick="window.appHandlers.extendDeadline(24)">Frist um +24 Std. verlängern</button>
               <button class="btn" onclick="window.appHandlers.exportJsonBackup()">JSON-Backup herunterladen</button>
+              <button class="btn" style="color: var(--negative); width: 100%; justify-content: flex-start;" onclick="window.appHandlers.resetToCleanSeason()">Saison 1 auf Anfang zurücksetzen (Leere Runde 1)</button>
               ${league.members.map(m => {
                 const u = getUserById(m.user_id);
                 const bal = (round.ballots || []).find(b => b.voter_id === u.id);
@@ -1708,6 +1714,18 @@ window.appHandlers = {
     await dispatchAction('DELETE_USER_ACCOUNT', { user_id: state.currentUserId }, 'Account anonymisiert.');
     state.mainView = 'ROUND';
     render();
+  },
+  async resetToCleanSeason() {
+    if (!confirm('Möchtest du wirklich alle Testdaten löschen und Saison 1 mit einer leeren Runde 1 starten?')) return;
+    const res = await dispatchAction('HOST_RESET_TO_CLEAN_SEASON', { user_id: state.currentUserId }, 'Saison 1 wurde auf Anfang zurückgesetzt.');
+    if (res) {
+      state.currentRoundId = 'round_01';
+      state.currentUserId = 'user_1';
+      state.mainView = 'ROUND';
+      state.menuOpen = false;
+      syncLocalFormsFromDb();
+      render();
+    }
   }
 };
 
