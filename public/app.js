@@ -106,10 +106,27 @@ function syncLocalFormsFromDb() {
       artist: ownSub.artist,
       album: ownSub.album,
       cover_url: ownSub.cover_url,
-      platforms: JSON.parse(JSON.stringify(ownSub.platforms))
+      platforms: JSON.parse(JSON.stringify(ownSub.platforms || {}))
     };
     state.subPitch = ownSub.pitch || '';
     state.subPitchVisibility = ownSub.pitch_visibility || 'VOTING';
+
+    if (!state.subSelectedTrack.platforms?.youtube?.video_id) {
+      fetch('/api/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ track: state.subSelectedTrack, queryOrUrl: `${state.subSelectedTrack.artist} ${state.subSelectedTrack.title}` })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.resolved && data.resolved.platforms?.youtube?.video_id && state.subSelectedTrack) {
+          state.subSelectedTrack.platforms = state.subSelectedTrack.platforms || {};
+          state.subSelectedTrack.platforms.youtube = data.resolved.platforms.youtube;
+          render();
+        }
+      })
+      .catch(() => {});
+    }
   } else {
     state.subSelectedTrack = null;
     state.subPitch = '';
@@ -678,21 +695,20 @@ function renderCleanSubmission(league, round, user) {
             </div>
 
             <!-- In-App Player / Audio Preview -->
-            ${sel.platforms?.youtube?.video_id ? `
-              <div style="border-radius: 6px; overflow: hidden; background: #000; margin-top: 2px;">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(sel.platforms.youtube.video_id)}?rel=0"
-                  width="100%"
-                  height="200"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            ` : sel.audio_preview_url ? `
-              <div style="margin-top: 2px;">
-                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Audio-Vorschau abspielen:</div>
-                <audio controls src="${sel.audio_preview_url}" style="width: 100%; height: 36px;"></audio>
+            <div style="border-radius: 6px; overflow: hidden; background: #000; margin-top: 4px;">
+              <iframe
+                src="${sel.platforms?.youtube?.video_id ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(sel.platforms.youtube.video_id) + '?rel=0' : 'https://www.youtube-nocookie.com/embed?listType=search&list=' + encodeURIComponent(sel.artist + ' ' + sel.title)}"
+                width="100%"
+                height="200"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            ${sel.audio_preview_url ? `
+              <div style="margin-top: 4px;">
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">30s Audio-Vorschau:</div>
+                <audio controls src="${sel.audio_preview_url}" style="width: 100%; height: 32px;"></audio>
               </div>
             ` : ''}
 
@@ -907,30 +923,15 @@ function renderCleanVotingAccordion(league, round, user) {
                       allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                       loading="lazy"
                     ></iframe>
-                  ` : track.platforms?.youtube?.video_id ? `
+                  ` : `
                     <iframe
-                      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(track.platforms.youtube.video_id)}?rel=0"
+                      src="${track.platforms?.youtube?.video_id ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(track.platforms.youtube.video_id) + '?rel=0' : 'https://www.youtube-nocookie.com/embed?listType=search&list=' + encodeURIComponent(track.artist + ' ' + track.title)}"
                       width="100%"
                       height="210"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     ></iframe>
-                  ` : track.platforms?.spotify?.track_id ? `
-                    <iframe
-                      src="https://open.spotify.com/embed/track/${encodeURIComponent(track.platforms.spotify.track_id)}?utm_source=generator&theme=0"
-                      width="100%"
-                      height="152"
-                      frameBorder="0"
-                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                      loading="lazy"
-                    ></iframe>
-                  ` : `
-                    <div style="padding: 16px; text-align: center;">
-                      <a href="${track.platforms?.youtube?.url || `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + ' ' + track.title)}`}" target="_blank" rel="noopener noreferrer" class="btn btn-accent">
-                        Song auf YouTube öffnen ↗
-                      </a>
-                    </div>
                   `}
                   <div class="embed-toolbar">
                     <span>
@@ -1122,6 +1123,18 @@ function renderCleanReveal(league, round, user) {
               ${isExp ? `
                 <div class="track-drawer">
                   ${t.pitch ? `<div class="pitch-line">„${escapeHtml(t.pitch)}“ — ${escapeHtml(row.submitter.name)}</div>` : ''}
+
+                  <!-- Embedded Player in Reveal Drawer -->
+                  <div style="border-radius: 6px; overflow: hidden; background: #000; margin: 8px 0;">
+                    <iframe
+                      src="${t.platforms?.youtube?.video_id ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(t.platforms.youtube.video_id) + '?rel=0' : 'https://www.youtube-nocookie.com/embed?listType=search&list=' + encodeURIComponent(t.artist + ' ' + t.title)}"
+                      width="100%"
+                      height="180"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
 
                   <div style="font-size: 13px; color: var(--text-secondary);">
                     <strong style="color: var(--text-primary);">Punkte:</strong>

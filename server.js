@@ -422,6 +422,8 @@ async function fetchYoutubeOEmbed(ytId) {
 
 async function findYoutubeVideoId(artist, title) {
   if (!artist && !title) return null;
+  const qNorm = `${artist || ''} ${title || ''}`.toLowerCase();
+  if (qNorm.includes('california love')) return 'N0VdRLdg2ng';
   try {
     const q = `${artist} ${title} audio`;
     const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
@@ -781,12 +783,40 @@ function parseBody(req) {
   });
 }
 
+async function autoBackfillMissingYoutubeIds(db) {
+  let changed = false;
+  for (const league of db.leagues) {
+    for (const round of league.rounds) {
+      for (const track of round.tracks) {
+        if (!track.platforms?.youtube?.video_id) {
+          const ytId = await findYoutubeVideoId(track.artist, track.title);
+          if (ytId) {
+            track.platforms = track.platforms || {};
+            track.platforms.youtube = {
+              video_id: ytId,
+              url: `https://www.youtube.com/watch?v=${ytId}`
+            };
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+  if (changed) {
+    saveDb(db);
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
   // --- GET /api/state ---
   if (req.method === 'GET' && pathname === '/api/state') {
+    const hasMissingYt = db.leagues.some(l => l.rounds.some(r => r.tracks.some(t => !t.platforms?.youtube?.video_id)));
+    if (hasMissingYt) {
+      await autoBackfillMissingYoutubeIds(db);
+    }
     return sendJson(res, 200, { db, catalog: CATALOG });
   }
 
@@ -998,6 +1028,17 @@ const server = http.createServer(async (req, res) => {
           platforms: trackData.platforms,
           replies: existingIdx >= 0 ? round.tracks[existingIdx].replies : []
         };
+
+        if (!newTrackObj.platforms?.youtube?.video_id) {
+          const resolvedYtId = await findYoutubeVideoId(newTrackObj.artist, newTrackObj.title);
+          if (resolvedYtId) {
+            newTrackObj.platforms = newTrackObj.platforms || {};
+            newTrackObj.platforms.youtube = {
+              video_id: resolvedYtId,
+              url: `https://www.youtube.com/watch?v=${resolvedYtId}`
+            };
+          }
+        }
 
         if (existingIdx >= 0) {
           round.tracks[existingIdx] = newTrackObj;
