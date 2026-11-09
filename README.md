@@ -1,4 +1,4 @@
-# Freitags-Tonspur — Dual-Platform Music Voting League
+# Tonspur — Dual-Platform Music Voting League
 
 Soziales Musik-Voting-Spiel (vom Typ *Music League*) mit automatischer Dual-Plattform-Unterstützung (**Spotify & YouTube**), Album-Cover-Artwork, Detektiv-Wertung (*„Wer war's?“* + *„Offensichtlicher Song“*) und reduziertem Editorial-Design (*Warm Dark* & *Warm Paper*).
 

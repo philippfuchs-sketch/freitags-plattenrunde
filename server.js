@@ -257,7 +257,7 @@ function createInitialDb() {
     leagues: [
       {
         id: 'league_01',
-        name: 'Freitags-Tonspur',
+        name: 'Tonspur',
         invite_code: 'TONSPUR26',
         season_number: 1,
         season_target_rounds: 6,

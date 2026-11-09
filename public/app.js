@@ -1,5 +1,5 @@
 // ============================================================================
-// DECLUTTERED & STRUCTURED FRONTEND: FREITAGS-TONSPUR
+// DECLUTTERED & STRUCTURED FRONTEND: TONSPUR
 // ============================================================================
 
 const state = {
