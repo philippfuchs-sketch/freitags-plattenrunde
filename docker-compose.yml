@@ -1,0 +1,12 @@
+services:
+  plattenrunde:
+    build: .
+    container_name: plattenrunde
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-vinyl-club-admin-2026}
+    volumes:
+      - ./data:/app/data

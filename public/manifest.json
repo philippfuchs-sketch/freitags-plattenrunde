@@ -1,0 +1,10 @@
+{
+  "name": "Freitags-Plattenrunde · Dual-Platform Music League",
+  "short_name": "Plattenrunde",
+  "description": "Soziales Musik-Voting-Spiel mit nahtloser Spotify- und YouTube-Integration.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121211",
+  "theme_color": "#121211",
+  "orientation": "portrait-primary"
+}
