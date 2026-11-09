@@ -1011,6 +1011,9 @@ const server = http.createServer(async (req, res) => {
           league.theme_ideas = league.theme_ideas.filter(i => i.id !== idea.id);
           saveDb(db);
         }
+        return sendJson(res, 200, { db });
+      }
+
       if (type === 'HOST_RESET_TO_CLEAN_SEASON') {
         const clean = createInitialDb();
         const existingHost = db.users.find(u => u.id === payload.user_id) || db.users[0];
