@@ -420,6 +420,19 @@ function render() {
     return;
   }
 
+  // Preserve active input focus & selection cursor if render() is ever called
+  const activeEl = document.activeElement;
+  let activeId = null;
+  let selStart = 0;
+  let selEnd = 0;
+  if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl.id) {
+    activeId = activeEl.id;
+    try {
+      selStart = activeEl.selectionStart;
+      selEnd = activeEl.selectionEnd;
+    } catch (_) {}
+  }
+
   const league = getCurrentLeague();
   const round = getCurrentRound();
   const user = getCurrentUser();
@@ -466,6 +479,16 @@ function render() {
     <!-- 4. TOAST -->
     ${state.toastMessage ? `<div class="toast-banner">${escapeHtml(state.toastMessage)}</div>` : ''}
   `;
+
+  if (activeId) {
+    const el = document.getElementById(activeId);
+    if (el) {
+      el.focus();
+      try {
+        el.setSelectionRange(selStart, selEnd);
+      } catch (_) {}
+    }
+  }
 }
 
 // ============================================================================
@@ -536,6 +559,49 @@ function renderActiveRoundScreen(league, round, user) {
 // ============================================================================
 // PHASE 1: CLEAN SUBMISSION VIEW (With Collapsible Callout Prediction)
 // ============================================================================
+function renderSubSearchResultsHtml(results) {
+  if (!results || results.length === 0) return '';
+  return `
+    <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface);">
+      ${results.map((item, idx) => `
+        <div
+          style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+          onclick="window.appHandlers.selectSubCatalogItem(${idx})"
+        >
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <img src="${item.cover_url}" alt="" class="album-cover" style="width: 38px; height: 38px; flex-shrink: 0;" />
+            <div style="min-width: 0;">
+              <div style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</div>
+              <div style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.artist)}</div>
+            </div>
+          </div>
+          <span style="font-size: 12px; color: var(--accent); flex-shrink: 0; margin-left: 8px;">Wählen</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderCalloutSearchResultsHtml(results) {
+  if (!results || results.length === 0) return '';
+  return `
+    <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface);">
+      ${results.map((item, idx) => `
+        <div
+          style="padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+          onclick="window.appHandlers.selectCalloutCatalogItem(${idx})"
+        >
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <img src="${item.cover_url}" alt="" class="album-cover" style="width: 34px; height: 34px; flex-shrink: 0;" />
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)} — ${escapeHtml(item.artist)}</span>
+          </div>
+          <span style="font-size: 12px; color: var(--accent); flex-shrink: 0; margin-left: 8px;">Tippen</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderCleanSubmission(league, round, user) {
   const existingSub = round.tracks.find(t => t.submitted_by === user.id);
   const sel = state.subSelectedTrack;
@@ -554,6 +620,7 @@ function renderCleanSubmission(league, round, user) {
 
         <div style="display: flex; gap: 8px;">
           <input
+            id="sub-search-input"
             type="text"
             class="input-field"
             placeholder="Songtitel suchen oder Spotify-/YouTube-Link einfügen..."
@@ -566,25 +633,9 @@ function renderCleanSubmission(league, round, user) {
           </button>
         </div>
 
-        ${state.subSearchResults.length > 0 ? `
-          <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
-            ${state.subSearchResults.map((item, idx) => `
-              <div
-                style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
-                onclick="window.appHandlers.selectSubCatalogItem(${idx})"
-              >
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <img src="${item.cover_url}" alt="" class="album-cover" style="width: 38px; height: 38px;" />
-                  <div>
-                    <div style="font-size: 14px; font-weight: 500;">${escapeHtml(item.title)}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">${escapeHtml(item.artist)}</div>
-                  </div>
-                </div>
-                <span style="font-size: 12px; color: var(--accent);">Wählen</span>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
+        <div id="sub-search-results">
+          ${renderSubSearchResultsHtml(state.subSearchResults)}
+        </div>
 
         ${sel ? `
           <div style="padding: 14px; border: 1px solid var(--border); border-radius: 8px; background-color: var(--surface-inset); display: flex; align-items: center; justify-content: space-between; gap: 14px;">
@@ -643,6 +694,7 @@ function renderCleanSubmission(league, round, user) {
           <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; gap: 8px;">
               <input
+                id="callout-search-input"
                 type="text"
                 class="input-field"
                 placeholder="Erwarteten Song suchen (z. B. a-ha - Take On Me)..."
@@ -653,22 +705,9 @@ function renderCleanSubmission(league, round, user) {
               <button class="btn" style="flex-shrink: 0;" onclick="window.appHandlers.resolveCalloutInput()">Setzen</button>
             </div>
 
-            ${state.calloutSearchResults.length > 0 ? `
-              <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
-                ${state.calloutSearchResults.map((item, idx) => `
-                  <div
-                    style="padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
-                    onclick="window.appHandlers.selectCalloutCatalogItem(${idx})"
-                  >
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <img src="${item.cover_url}" alt="" class="album-cover" style="width: 34px; height: 34px;" />
-                      <span style="font-size: 13px;">${escapeHtml(item.title)} — ${escapeHtml(item.artist)}</span>
-                    </div>
-                    <span style="font-size: 12px; color: var(--accent);">Tippen</span>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
+            <div id="callout-search-results">
+              ${renderCalloutSearchResultsHtml(state.calloutSearchResults)}
+            </div>
 
             ${calloutSel ? `
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; background-color: var(--surface-inset);">
@@ -1493,16 +1532,19 @@ window.appHandlers = {
     state.subSearchQuery = val;
     clearTimeout(subSearchDebounceTimer);
     const q = val.trim();
+    const container = document.getElementById('sub-search-results');
     if (q.length < 1) {
       state.subSearchResults = [];
-      render();
+      if (container) container.innerHTML = '';
       return;
     }
     const qLower = q.toLowerCase();
     state.subSearchResults = state.catalog.filter(item =>
       item.title.toLowerCase().includes(qLower) || item.artist.toLowerCase().includes(qLower)
     ).slice(0, 5);
-    render();
+    if (container) {
+      container.innerHTML = renderSubSearchResultsHtml(state.subSearchResults);
+    }
 
     if (q.length >= 2 && !q.startsWith('http://') && !q.startsWith('https://')) {
       subSearchDebounceTimer = setTimeout(async () => {
@@ -1510,9 +1552,12 @@ window.appHandlers = {
           const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&platform=${state.platformMode}`);
           if (res.ok) {
             const data = await res.json();
-            if (state.subSearchQuery.trim() === q && Array.isArray(data.results) && data.results.length > 0) {
+            if (state.subSearchQuery.trim() === q && Array.isArray(data.results)) {
               state.subSearchResults = data.results;
-              render();
+              const resEl = document.getElementById('sub-search-results');
+              if (resEl) {
+                resEl.innerHTML = renderSubSearchResultsHtml(data.results);
+              }
             }
           }
         } catch (_) {}
@@ -1573,16 +1618,19 @@ window.appHandlers = {
     state.calloutSearchQuery = val;
     clearTimeout(calloutSearchDebounceTimer);
     const q = val.trim();
+    const container = document.getElementById('callout-search-results');
     if (q.length < 1) {
       state.calloutSearchResults = [];
-      render();
+      if (container) container.innerHTML = '';
       return;
     }
     const qLower = q.toLowerCase();
     state.calloutSearchResults = state.catalog.filter(item =>
       item.title.toLowerCase().includes(qLower) || item.artist.toLowerCase().includes(qLower)
     ).slice(0, 5);
-    render();
+    if (container) {
+      container.innerHTML = renderCalloutSearchResultsHtml(state.calloutSearchResults);
+    }
 
     if (q.length >= 2 && !q.startsWith('http://') && !q.startsWith('https://')) {
       calloutSearchDebounceTimer = setTimeout(async () => {
@@ -1590,9 +1638,12 @@ window.appHandlers = {
           const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&platform=${state.platformMode}`);
           if (res.ok) {
             const data = await res.json();
-            if (state.calloutSearchQuery.trim() === q && Array.isArray(data.results) && data.results.length > 0) {
+            if (state.calloutSearchQuery.trim() === q && Array.isArray(data.results)) {
               state.calloutSearchResults = data.results;
-              render();
+              const resEl = document.getElementById('callout-search-results');
+              if (resEl) {
+                resEl.innerHTML = renderCalloutSearchResultsHtml(data.results);
+              }
             }
           }
         } catch (_) {}
