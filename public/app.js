@@ -40,6 +40,8 @@ const state = {
   newIdeaTitle: '',
   newIdeaDesc: '',
   hostToolsExpanded: false,
+  roundEditorOpen: false,
+  newRoundFormOpen: false,
   toastMessage: null
 };
 
@@ -549,8 +551,25 @@ function renderActiveRoundScreen(league, round, user) {
     ${round.phase === 'VOTING' ? renderCleanVotingAccordion(league, round, user) : ''}
     ${round.phase === 'REVEAL' ? renderCleanReveal(league, round, user) : ''}
     ${round.phase === 'UPCOMING' ? `
-      <div style="padding: 40px 20px; color: var(--text-secondary);">
-        Diese Runde ist als nächstes geplant. Sobald sie vom Host freigegeben wird, können Songs eingereicht werden.
+      <div style="padding: 24px 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div class="card-box" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="drawer-label">Status: Geplante Runde</div>
+          <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
+            Dieses Motto ist für <strong>Runde 0${round.number}</strong> vorgemerkt. Sobald du die Einreichungsphase eröffnest, können alle Mitspieler ihre Tracks zu diesem Thema einreichen.
+          </p>
+          ${isHost ? `
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; flex-wrap: wrap;">
+              <button class="btn" onclick="window.appHandlers.toggleRoundEditor()">${state.roundEditorOpen ? 'Editor schließen' : 'Motto bearbeiten'}</button>
+              <button class="btn btn-accent" onclick="window.appHandlers.activatePlannedRound('${round.id}')">
+                Einreichungsphase eröffnen →
+              </button>
+            </div>
+          ` : `
+            <div style="font-size: 13px; color: var(--text-muted);">
+              Warte auf den Host, um die Einreichungsphase für diese Runde zu eröffnen.
+            </div>
+          `}
+        </div>
       </div>
     ` : ''}
   `;
@@ -1209,6 +1228,67 @@ function renderSeasonScreen(league, round, user) {
         <div>
           <div class="drawer-label">Deine Detektiv-Quote</div>
           <div class="mono" style="font-size: 15px; font-weight: 500; margin-top: 4px;">${detRate}% richtig</div>
+        </div>
+      </div>
+
+      <!-- Season Rounds & Future Mottos Overview -->
+      <div class="card-box" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <div class="drawer-label">Runden dieser Saison &amp; Mottos</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+              Übersicht aller aktiven und geplanten Mottos für Saison 0${league.season_number}
+            </div>
+          </div>
+          ${isHost ? `
+            <button class="btn btn-accent" onclick="window.appHandlers.toggleNewRoundForm()">
+              ${state.newRoundFormOpen ? 'Schließen' : '+ Weitere Runde planen'}
+            </button>
+          ` : ''}
+        </div>
+
+        ${state.newRoundFormOpen && isHost ? `
+          <div style="padding: 14px; border: 1px solid var(--border); border-radius: 6px; background-color: var(--surface-inset); display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 13px; font-weight: 600;">Neue Runde vormerken (Runde 0${league.rounds.length + 1})</div>
+            <input id="new-round-input-title" type="text" class="input-field" placeholder="Motto / Thema (z. B. 90er Guilty Pleasures)..." />
+            <textarea id="new-round-input-desc" class="textarea-field" placeholder="Beschreibung oder Vorgaben (z. B. Songs erschienen zwischen 1990 und 1999)..."></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+              <button class="btn" onclick="window.appHandlers.toggleNewRoundForm()">Abbrechen</button>
+              <button class="btn" onclick="window.appHandlers.submitNewRoundForm(false)">Als geplante Runde speichern</button>
+              <button class="btn btn-accent" onclick="window.appHandlers.submitNewRoundForm(true)">Sofort als aktive Runde starten</button>
+            </div>
+          </div>
+        ` : ''}
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          ${league.rounds.map(r => {
+            const statusLabel =
+              r.phase === 'SUBMISSION' ? 'Aktiv · Einreichung' :
+              r.phase === 'VOTING' ? 'Aktiv · Voting' :
+              r.phase === 'REVEAL' ? 'Abgeschlossen' : 'Geplant';
+            const statusColor =
+              r.phase === 'UPCOMING' ? 'var(--text-muted)' :
+              r.phase === 'REVEAL' ? 'var(--accent)' : 'var(--positive)';
+            return `
+              <div style="padding: 12px 14px; border: 1px solid var(--border-subtle); border-radius: 6px; background-color: var(--surface-inset); display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span class="mono" style="font-size: 12px; color: var(--accent); font-weight: 600;">Runde 0${r.number}</span>
+                    <strong style="font-size: 14px;">${escapeHtml(r.title)}</strong>
+                  </div>
+                  <span class="mono" style="font-size: 11px; color: ${statusColor};">${statusLabel}</span>
+                </div>
+                ${r.description ? `<p style="font-size: 12px; color: var(--text-secondary); margin: 0;">${escapeHtml(r.description)}</p>` : ''}
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border-subtle);">
+                  <button class="btn-text" onclick="window.appHandlers.changeRound('${r.id}')">Öffnen →</button>
+                  ${isHost && r.phase === 'UPCOMING' ? `
+                    <button class="btn-text" style="color: var(--accent);" onclick="window.appHandlers.activatePlannedRound('${r.id}')">Jetzt starten</button>
+                    <button class="btn-text" style="color: var(--negative);" onclick="window.appHandlers.deletePlannedRound('${r.id}')">Löschen</button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
 
@@ -1913,6 +1993,54 @@ window.appHandlers = {
       idea_id: ideaId
     }, 'Neue Runde aus Idee erstellt.');
     if (res) {
+      render();
+    }
+  },
+  toggleNewRoundForm() {
+    state.newRoundFormOpen = !state.newRoundFormOpen;
+    render();
+  },
+  async submitNewRoundForm(startImmediately) {
+    const title = (document.getElementById('new-round-input-title')?.value || '').trim();
+    const description = (document.getElementById('new-round-input-desc')?.value || '').trim();
+    if (!title) return showToast('Bitte gib einen Titel oder Motto ein.');
+    const res = await dispatchAction('HOST_CREATE_ROUND', {
+      league_id: state.currentLeagueId,
+      title,
+      description,
+      start_immediately: Boolean(startImmediately)
+    }, startImmediately ? 'Neue Runde gestartet!' : 'Geplante Runde angelegt.');
+    if (res) {
+      state.newRoundFormOpen = false;
+      if (startImmediately && res.created_round_id) {
+        state.currentRoundId = res.created_round_id;
+        state.mainView = 'ROUND';
+      }
+      render();
+    }
+  },
+  async activatePlannedRound(roundId) {
+    if (!confirm('Möchtest du diese Runde jetzt als aktive Runde starten? (Einreichungsphase wird eröffnet)')) return;
+    const res = await dispatchAction('SET_ROUND_PHASE', {
+      league_id: state.currentLeagueId,
+      round_id: roundId,
+      phase: 'SUBMISSION'
+    }, 'Runde wurde gestartet!');
+    if (res) {
+      state.currentRoundId = roundId;
+      state.mainView = 'ROUND';
+      render();
+    }
+  },
+  async deletePlannedRound(roundId) {
+    if (!confirm('Möchtest du diese geplante Runde wirklich löschen?')) return;
+    const res = await dispatchAction('HOST_DELETE_ROUND', {
+      league_id: state.currentLeagueId,
+      round_id: roundId
+    }, 'Runde gelöscht.');
+    if (res) {
+      const league = getCurrentLeague();
+      state.currentRoundId = league.active_round_id || league.rounds[0].id;
       render();
     }
   },

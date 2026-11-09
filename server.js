@@ -1222,6 +1222,19 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { db, created_round_id: newRound.id });
       }
 
+      if (type === 'HOST_DELETE_ROUND') {
+        const { league, round } = getLeagueAndRound(payload.league_id, payload.round_id);
+        if (round && league.rounds.length > 1) {
+          league.rounds = league.rounds.filter(r => r.id !== round.id);
+          league.rounds.forEach((r, idx) => { r.number = idx + 1; });
+          if (league.active_round_id === round.id) {
+            league.active_round_id = league.rounds[0].id;
+          }
+          saveDb(db);
+        }
+        return sendJson(res, 200, { db });
+      }
+
       return sendJson(res, 400, { error: 'Unbekannte Aktion' });
     } catch (err) {
       return sendJson(res, 500, { error: err.message || 'Serverfehler' });
