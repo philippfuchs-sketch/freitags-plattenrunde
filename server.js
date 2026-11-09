@@ -484,7 +484,31 @@ async function resolveTrackInput(queryOrUrl) {
     return result;
   }
 
-  // 4. Free-text custom song entry fallback
+  // 4. Try live search API (Spotify or YouTube) if configured
+  try {
+    const liveHits = await searchSpotifyApi(raw);
+    if (liveHits.length > 0) {
+      const top = liveHits[0];
+      if (top.platforms?.spotify?.url) {
+        try {
+          const odesliRes = await fetch(`https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(top.platforms.spotify.url)}`);
+          if (odesliRes.ok) {
+            const odesliData = await odesliRes.json();
+            const ytLink = odesliData.linksByPlatform?.youtube || odesliData.linksByPlatform?.youtubeMusic;
+            if (ytLink) {
+              top.platforms.youtube = {
+                video_id: extractYoutubeVideoId(ytLink.url),
+                url: ytLink.url
+              };
+            }
+          }
+        } catch (_) {}
+      }
+      return top;
+    }
+  } catch (_) {}
+
+  // 5. Free-text custom song entry fallback
   const parts = raw.split(/[-–—]/).map(s => s.trim()).filter(Boolean);
   const artist = parts.length > 1 ? parts[0] : 'Unbekannter Interpret';
   const title = parts.length > 1 ? parts.slice(1).join(' - ') : raw;
@@ -499,6 +523,110 @@ async function resolveTrackInput(queryOrUrl) {
     },
     single_platform_only: false
   };
+}
+
+// ============================================================================
+// SPOTIFY WEB API CLIENT CREDENTIALS INTEGRATION (OPTIONAL LIVE SEARCH)
+// ============================================================================
+let cachedSpotifyToken = null;
+let spotifyTokenExpiresAt = 0;
+
+async function getSpotifyApiToken() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+
+  if (cachedSpotifyToken && Date.now() < spotifyTokenExpiresAt - 60000) {
+    return cachedSpotifyToken;
+  }
+
+  try {
+    const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${creds}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: 'grant_type=client_credentials'
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      cachedSpotifyToken = data.access_token;
+      spotifyTokenExpiresAt = Date.now() + (data.expires_in * 1000);
+      return cachedSpotifyToken;
+    }
+  } catch (err) {
+    console.error('Spotify token fetch error:', err.message);
+  }
+  return null;
+}
+
+async function searchSpotifyApi(query) {
+  const token = await getSpotifyApiToken();
+  if (!token) return [];
+  try {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=8`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const items = data.tracks?.items || [];
+      return items.map(t => ({
+        title: t.name,
+        artist: t.artists.map(a => a.name).join(', '),
+        album: t.album.name,
+        cover_url: t.album.images?.[0]?.url || makeAlbumCoverSvg(t.name, t.artists[0]?.name),
+        platforms: {
+          spotify: {
+            track_id: t.id,
+            uri: t.uri,
+            url: t.external_urls?.spotify || `https://open.spotify.com/track/${t.id}`
+          },
+          youtube: null
+        }
+      }));
+    }
+  } catch (err) {
+    console.error('Spotify search error:', err.message);
+  }
+  return [];
+}
+
+async function searchYouTubeApi(query) {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(query)}&key=${apiKey}`;
+    const resp = await fetch(url);
+    if (resp.ok) {
+      const data = await resp.json();
+      const items = data.items || [];
+      return items.filter(it => it.id?.videoId).map(item => {
+        const vid = item.id.videoId;
+        const rawTitle = item.snippet?.title || 'YouTube Track';
+        const title = rawTitle.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        const artist = item.snippet?.channelTitle || 'YouTube';
+        return {
+          title,
+          artist,
+          album: 'YouTube Video',
+          cover_url: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url || makeAlbumCoverSvg(title, artist),
+          platforms: {
+            spotify: null,
+            youtube: {
+              video_id: vid,
+              url: `https://www.youtube.com/watch?v=${vid}`
+            }
+          }
+        };
+      });
+    }
+  } catch (err) {
+    console.error('YouTube search error:', err.message);
+  }
+  return [];
 }
 
 // ============================================================================
@@ -547,14 +675,33 @@ const server = http.createServer(async (req, res) => {
 
   // --- GET /api/search?q=... ---
   if (req.method === 'GET' && pathname === '/api/search') {
-    const q = (parsedUrl.searchParams.get('q') || '').trim().toLowerCase();
+    const q = (parsedUrl.searchParams.get('q') || '').trim();
+    const platform = (parsedUrl.searchParams.get('platform') || 'all').toLowerCase();
     if (!q) return sendJson(res, 200, { results: CATALOG.slice(0, 8) });
+
+    let spotifyResults = [];
+    if (platform !== 'youtube') {
+      spotifyResults = await searchSpotifyApi(q);
+    }
+
+    let youtubeResults = [];
+    if (platform === 'youtube' || (!spotifyResults.length && process.env.YOUTUBE_API_KEY)) {
+      youtubeResults = await searchYouTubeApi(q);
+    }
+
+    const liveResults = [...spotifyResults, ...youtubeResults];
+    if (liveResults.length > 0) {
+      return sendJson(res, 200, { results: liveResults.slice(0, 8), source: 'live_api' });
+    }
+
+    // Curated catalog fallback
+    const qLower = q.toLowerCase();
     const matches = CATALOG.filter(item =>
-      item.title.toLowerCase().includes(q) ||
-      item.artist.toLowerCase().includes(q) ||
-      item.album.toLowerCase().includes(q)
+      item.title.toLowerCase().includes(qLower) ||
+      item.artist.toLowerCase().includes(qLower) ||
+      item.album.toLowerCase().includes(qLower)
     );
-    return sendJson(res, 200, { results: matches.slice(0, 8) });
+    return sendJson(res, 200, { results: matches.slice(0, 8), source: 'catalog' });
   }
 
   // --- POST /api/resolve ---
@@ -1033,9 +1180,46 @@ const server = http.createServer(async (req, res) => {
         if (payload.first_round_desc) {
           clean.leagues[0].rounds[0].description = payload.first_round_desc;
         }
-        db = clean;
         saveDb(db);
         return sendJson(res, 200, { db });
+      }
+
+      if (type === 'HOST_UPDATE_ROUND') {
+        const { round } = getLeagueAndRound(payload.league_id, payload.round_id);
+        if (round) {
+          if (payload.title) round.title = String(payload.title).trim();
+          if (payload.description !== undefined) round.description = String(payload.description).trim();
+          if (payload.points_budget) round.points_budget = Number(payload.points_budget) || 10;
+          if (payload.max_one_per_artist !== undefined) round.max_one_per_artist = Boolean(payload.max_one_per_artist);
+          saveDb(db);
+        }
+        return sendJson(res, 200, { db });
+      }
+
+      if (type === 'HOST_CREATE_ROUND') {
+        const { league } = getLeagueAndRound(payload.league_id, null);
+        const nextNum = league.rounds.length + 1;
+        const newRound = {
+          id: `round_0${nextNum}_${Date.now()}`,
+          number: nextNum,
+          title: String(payload.title || `Runde 0${nextNum}`).trim(),
+          description: String(payload.description || '').trim(),
+          phase: payload.start_immediately ? 'SUBMISSION' : 'UPCOMING',
+          points_budget: 10,
+          max_points_per_track: 3,
+          max_one_per_artist: true,
+          submission_deadline: new Date(Date.now() + 7 * 86400000).toISOString(),
+          voting_deadline: new Date(Date.now() + 11 * 86400000).toISOString(),
+          tracks: [],
+          callouts: [],
+          ballots: []
+        };
+        league.rounds.push(newRound);
+        if (payload.start_immediately) {
+          league.active_round_id = newRound.id;
+        }
+        saveDb(db);
+        return sendJson(res, 200, { db, created_round_id: newRound.id });
       }
 
       return sendJson(res, 400, { error: 'Unbekannte Aktion' });

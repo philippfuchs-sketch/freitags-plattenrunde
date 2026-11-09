@@ -472,6 +472,7 @@ function render() {
 // AUTOMATIC ROUND SCREEN (Renders Submission, Voting, or Reveal based on Phase)
 // ============================================================================
 function renderActiveRoundScreen(league, round, user) {
+  const isHost = isUserHostOrCoHost(league, user.id);
   const activeMembers = league.members.filter(m => m.status === 'ACTIVE');
   const submittedBallotsCount = (round.ballots || []).filter(b => b.status === 'SUBMITTED').length;
   const submittedTracksCount = round.tracks.length;
@@ -493,16 +494,31 @@ function renderActiveRoundScreen(league, round, user) {
         <span>${escapeHtml(league.name)} · ${phaseLabel}</span>
       </div>
 
-      <h1 class="round-title">${escapeHtml(round.title)}</h1>
-
-      <div class="round-desc-row">
-        <p class="round-desc">${escapeHtml(round.description)}</p>
-        ${round.tracks.length > 0 && round.phase !== 'SUBMISSION' ? `
-          <a href="${playlistHref}" target="_blank" rel="noopener noreferrer" class="btn-text" style="color: var(--accent); font-weight: 500;">
-            Ganze Runde in ${state.platformMode === 'youtube' ? 'YouTube' : 'Spotify'} hören ↗
-          </a>
-        ` : ''}
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h1 class="round-title">${escapeHtml(round.title)}</h1>
+        ${isHost ? `<button class="btn-text" onclick="window.appHandlers.toggleRoundEditor()">${state.roundEditorOpen ? 'Schließen ✕' : 'Motto bearbeiten ✎'}</button>` : ''}
       </div>
+
+      ${state.roundEditorOpen ? `
+        <div class="card-box" style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="drawer-label">Runden-Motto anpassen</div>
+          <input id="edit-round-title" type="text" class="input-field" value="${escapeHtml(round.title)}" placeholder="Runden-Titel..." />
+          <textarea id="edit-round-desc" class="textarea-field" placeholder="Beschreibung / Thema der Runde...">${escapeHtml(round.description || '')}</textarea>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn" onclick="window.appHandlers.toggleRoundEditor()">Abbrechen</button>
+            <button class="btn btn-accent" onclick="window.appHandlers.saveRoundDetails('${round.id}')">Speichern</button>
+          </div>
+        </div>
+      ` : `
+        <div class="round-desc-row">
+          <p class="round-desc">${escapeHtml(round.description)}</p>
+          ${round.tracks.length > 0 && round.phase !== 'SUBMISSION' ? `
+            <a href="${playlistHref}" target="_blank" rel="noopener noreferrer" class="btn-text" style="color: var(--accent); font-weight: 500;">
+              Ganze Runde in ${state.platformMode === 'youtube' ? 'YouTube' : 'Spotify'} hören ↗
+            </a>
+          ` : ''}
+        </div>
+      `}
     </section>
 
     <!-- Phase Content -->
@@ -1078,6 +1094,7 @@ function renderSeasonScreen(league, round, user) {
   const { songLeaderboard, detectiveLeaderboard, statsByUser, biggestFan, favoriteSupplier, allSeasonTracks } = computeSeasonStats(league);
   const myStats = statsByUser[user.id] || {};
   const detRate = myStats.guessesMadeTotal > 0 ? Math.round((myStats.guessesCorrectTotal / myStats.guessesMadeTotal) * 100) : 0;
+  const isHost = (league.host_user_id === user.id) || (league.members.find(m => m.user_id === user.id)?.role === 'HOST');
 
   return `
     <section class="round-hero">
@@ -1163,9 +1180,14 @@ function renderSeasonScreen(league, round, user) {
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${(league.theme_ideas || []).map(idea => `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; background-color: var(--surface-inset);">
-              <span style="font-size: 13px; font-weight: 500;">${escapeHtml(idea.title)}</span>
-              <button class="btn mono" onclick="window.appHandlers.toggleIdeaVote('${idea.id}')">+${(idea.votes || []).length}</button>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; background-color: var(--surface-inset); gap: 10px;">
+              <span style="font-size: 13px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(idea.title)}</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <button class="btn mono" onclick="window.appHandlers.toggleIdeaVote('${idea.id}')">+${(idea.votes || []).length}</button>
+                ${isHost ? `
+                  <button class="btn-text" style="font-size: 12px; color: var(--accent);" onclick="window.appHandlers.promoteIdeaToNextRound('${idea.id}')">Als neue Runde starten →</button>
+                ` : ''}
+              </div>
             </div>
           `).join('')}
         </div>
@@ -1368,6 +1390,7 @@ function renderMenuDrawer(league, round, user) {
               </button>
             </div>
             ${state.hostToolsExpanded ? `
+              <button class="btn" onclick="window.appHandlers.createNewRoundPrompt()">+ Neue Runde anlegen</button>
               <button class="btn" onclick="window.appHandlers.extendDeadline(24)">Frist um +24 Std. verlängern</button>
               <button class="btn" onclick="window.appHandlers.exportJsonBackup()">JSON-Backup herunterladen</button>
               <button class="btn" style="color: var(--negative); width: 100%; justify-content: flex-start;" onclick="window.appHandlers.resetToCleanSeason()">Saison 1 auf Anfang zurücksetzen (Leere Runde 1)</button>
@@ -1393,6 +1416,9 @@ function renderMenuDrawer(league, round, user) {
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
+let subSearchDebounceTimer = null;
+let calloutSearchDebounceTimer = null;
+
 window.appHandlers = {
   setMainView(view) {
     state.mainView = view;
@@ -1465,19 +1491,61 @@ window.appHandlers = {
   },
   onSubSearchInput(val) {
     state.subSearchQuery = val;
-    const q = val.trim().toLowerCase();
-    state.subSearchResults = q.length < 1 ? [] : state.catalog.filter(item =>
-      item.title.toLowerCase().includes(q) || item.artist.toLowerCase().includes(q)
+    clearTimeout(subSearchDebounceTimer);
+    const q = val.trim();
+    if (q.length < 1) {
+      state.subSearchResults = [];
+      render();
+      return;
+    }
+    const qLower = q.toLowerCase();
+    state.subSearchResults = state.catalog.filter(item =>
+      item.title.toLowerCase().includes(qLower) || item.artist.toLowerCase().includes(qLower)
     ).slice(0, 5);
     render();
+
+    if (q.length >= 2 && !q.startsWith('http://') && !q.startsWith('https://')) {
+      subSearchDebounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&platform=${state.platformMode}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (state.subSearchQuery.trim() === q && Array.isArray(data.results) && data.results.length > 0) {
+              state.subSearchResults = data.results;
+              render();
+            }
+          }
+        } catch (_) {}
+      }, 300);
+    }
   },
-  selectSubCatalogItem(idx) {
+  async selectSubCatalogItem(idx) {
     const item = state.subSearchResults[idx];
     if (!item) return;
     state.subSelectedTrack = JSON.parse(JSON.stringify(item));
     state.subSearchQuery = `${item.artist} — ${item.title}`;
     state.subSearchResults = [];
     render();
+
+    const spUrl = item.platforms?.spotify?.url;
+    const ytUrl = item.platforms?.youtube?.url;
+    if ((spUrl && !ytUrl) || (ytUrl && !spUrl)) {
+      try {
+        const queryOrUrl = spUrl || ytUrl;
+        const res = await fetch('/api/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queryOrUrl })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.resolved) {
+            state.subSelectedTrack = data.resolved;
+            render();
+          }
+        }
+      } catch (_) {}
+    }
   },
   async resolveSubInput() {
     const q = state.subSearchQuery.trim();
@@ -1503,19 +1571,61 @@ window.appHandlers = {
   },
   onCalloutSearchInput(val) {
     state.calloutSearchQuery = val;
-    const q = val.trim().toLowerCase();
-    state.calloutSearchResults = q.length < 1 ? [] : state.catalog.filter(item =>
-      item.title.toLowerCase().includes(q) || item.artist.toLowerCase().includes(q)
+    clearTimeout(calloutSearchDebounceTimer);
+    const q = val.trim();
+    if (q.length < 1) {
+      state.calloutSearchResults = [];
+      render();
+      return;
+    }
+    const qLower = q.toLowerCase();
+    state.calloutSearchResults = state.catalog.filter(item =>
+      item.title.toLowerCase().includes(qLower) || item.artist.toLowerCase().includes(qLower)
     ).slice(0, 5);
     render();
+
+    if (q.length >= 2 && !q.startsWith('http://') && !q.startsWith('https://')) {
+      calloutSearchDebounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&platform=${state.platformMode}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (state.calloutSearchQuery.trim() === q && Array.isArray(data.results) && data.results.length > 0) {
+              state.calloutSearchResults = data.results;
+              render();
+            }
+          }
+        } catch (_) {}
+      }, 300);
+    }
   },
-  selectCalloutCatalogItem(idx) {
+  async selectCalloutCatalogItem(idx) {
     const item = state.calloutSearchResults[idx];
     if (!item) return;
     state.calloutSelectedTrack = JSON.parse(JSON.stringify(item));
     state.calloutSearchQuery = `${item.artist} — ${item.title}`;
     state.calloutSearchResults = [];
     render();
+
+    const spUrl = item.platforms?.spotify?.url;
+    const ytUrl = item.platforms?.youtube?.url;
+    if ((spUrl && !ytUrl) || (ytUrl && !spUrl)) {
+      try {
+        const queryOrUrl = spUrl || ytUrl;
+        const res = await fetch('/api/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queryOrUrl })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.resolved) {
+            state.calloutSelectedTrack = data.resolved;
+            render();
+          }
+        }
+      } catch (_) {}
+    }
   },
   async resolveCalloutInput() {
     const q = state.calloutSearchQuery.trim();
@@ -1714,6 +1824,49 @@ window.appHandlers = {
     await dispatchAction('DELETE_USER_ACCOUNT', { user_id: state.currentUserId }, 'Account anonymisiert.');
     state.mainView = 'ROUND';
     render();
+  },
+  toggleRoundEditor() {
+    state.roundEditorOpen = !state.roundEditorOpen;
+    render();
+  },
+  async saveRoundDetails(roundId) {
+    const title = (document.getElementById('edit-round-title')?.value || '').trim();
+    const description = (document.getElementById('edit-round-desc')?.value || '').trim();
+    if (!title) return showToast('Bitte gib einen Titel ein.');
+    const res = await dispatchAction('HOST_UPDATE_ROUND', {
+      league_id: state.currentLeagueId,
+      round_id: roundId,
+      title,
+      description
+    }, 'Runden-Motto aktualisiert.');
+    if (res) {
+      state.roundEditorOpen = false;
+      render();
+    }
+  },
+  async promoteIdeaToNextRound(ideaId) {
+    if (!confirm('Diese Motto-Idee als nächste offizielle Runde anlegen?')) return;
+    const res = await dispatchAction('PROMOTE_IDEA_TO_ROUND', {
+      league_id: state.currentLeagueId,
+      idea_id: ideaId
+    }, 'Neue Runde aus Idee erstellt.');
+    if (res) {
+      render();
+    }
+  },
+  async createNewRoundPrompt() {
+    const title = prompt('Titel / Motto für die neue Runde:');
+    if (!title || !title.trim()) return;
+    const desc = prompt('Beschreibung oder Thema (optional):', '') || '';
+    const res = await dispatchAction('HOST_CREATE_ROUND', {
+      league_id: state.currentLeagueId,
+      title: title.trim(),
+      description: desc.trim(),
+      start_immediately: false
+    }, 'Neue Runde angelegt.');
+    if (res) {
+      render();
+    }
   },
   async resetToCleanSeason() {
     if (!confirm('Möchtest du wirklich alle Testdaten löschen und Saison 1 mit einer leeren Runde 1 starten?')) return;

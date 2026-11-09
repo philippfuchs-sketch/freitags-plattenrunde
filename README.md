@@ -76,6 +76,47 @@ server {
 
 ---
 
+## Song-Suche & API-Konfiguration (Spotify & YouTube)
+
+Die App funktioniert **vollständig ohne externe API-Keys**:
+- Jeder Mitspieler kann einfach einen **Spotify-Link** (`https://open.spotify.com/track/...`) oder **YouTube-Link** (`https://youtube.com/watch?v=...`) in das Suchfeld einfügen und auf **„Auswählen“** klicken.
+- Das System löst den Link über Odesli/Songlink automatisch auf, verknüpft Spotify & YouTube zeitgleich und lädt das offizielle Album-Cover.
+
+### Optionale Live-Suche nach Songtiteln & Interpreten
+
+Wenn Mitspieler Songs direkt per Freitextsuche (ohne vorheriges Kopieren eines Links) weltweit durchsuchen können sollen, kannst du kostenlose API-Schlüssel in `/root/plattenrunde/.env` eintragen:
+
+```bash
+# In /root/plattenrunde/.env
+SPOTIFY_CLIENT_ID=deine_spotify_client_id
+SPOTIFY_CLIENT_SECRET=deine_spotify_client_secret
+YOUTUBE_API_KEY=dein_youtube_api_key  # Optional
+```
+
+1. **Spotify Web API**:
+   - Im [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) mit deinem normalen Spotify-Konto einloggen.
+   - Auf **„Create App“** klicken (App-Name z. B. `Plattenrunde`, Redirect URI: `http://localhost`).
+   - Unter **Settings** die `Client ID` und das `Client Secret` kopieren.
+2. Nach dem Eintragen in `.env` einmal den Container neu starten:
+   ```bash
+   docker compose up -d --build
+   ```
+
+---
+
+## Runden-Themen & Mottos verwalten
+
+1. **Aktives Motto ändern**:
+   - Als Host (Philipp) siehst du im Runden-Kopf direkt den Button **„Motto bearbeiten ✎“**.
+   - Titel und Beschreibung können dort jederzeit im laufenden Betrieb angepasst und gespeichert werden.
+2. **Kommende Runden aus der Ideenbox starten**:
+   - Unter **Menü ☰ → Saison & Bestenliste** finden alle Mitspieler die **Motto-Ideenbox** und können Ideen vorschlagen und hochvoten.
+   - Der Host kann jede Idee mit einem Klick auf **„Als neue Runde starten →“** direkt als nächste offizielle Runde anlegen.
+3. **Neue Runde manuell anlegen**:
+   - Im Menü unter **Host-Werkzeuge → „+ Neue Runde anlegen“**.
+
+---
+
 ## Backup & Datenhaltung
 
 - Alle Ligen, Runden, Songs, Stimmen und Profile liegen in einer einzigen Datei: `data/db.json`.

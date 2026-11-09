@@ -5,8 +5,14 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${HOST_PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
     environment:
       - PORT=3000
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-vinyl-club-admin-2026}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
     volumes:
       - ./data:/app/data
